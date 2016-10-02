@@ -6,10 +6,10 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
-import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError.CANNOT_BE_ABSTRACT_AND_FINAL;
-import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError.CANNOT_HAVE_EMPTY_CLASS_NAME;
-import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError.MUST_BE_CLASS_OR_INTERFACE;
+import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError.*;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**ClazzImplTest
@@ -32,13 +32,11 @@ public class ClazzImplTest {
     private void setupClass() {
         clazz.setClassType(Clazz.ClassType.CLASS);
         clazz.addExtension(Object.class);
-        clazz.setVisibility(Clazz.Visibility.PUBLIC);
-        clazz.setFinal(true);
         clazz.addImplementations(Collections.<Class>singletonList(Clazz.class));
     }
 
     @Test
-    public void classCannotHaveEmptyNameTest() {
+    public void cannotHaveEmptyNameTest() {
         Clazz nameless = clazzManager.get("com.rmbcorp.javawriter", "");
         nameless.setClassType(Clazz.ClassType.CLASS);
         String output = clazzManager.writeOut(nameless);
@@ -55,13 +53,18 @@ public class ClazzImplTest {
 
     @Test
     public void outputContainsAllImportsTest() {
-        clazz.addImports(Arrays.<Class>asList(INTEGER_CLASS, STRING_CLASS));
+        List<Class> classList = Arrays.<Class>asList(INTEGER_CLASS, STRING_CLASS);
+        clazz.addImports(classList);
         String[] output = clazzManager.writeOut(clazz).split(";|\\s");
-        assertTrue(StringUtil.containsAll(output, new String[]{ nameMatch(INTEGER_CLASS), nameMatch(STRING_CLASS) }));
+        assertTrue(StringUtil.containsAll(output, nameMatch(classList)));
     }
 
-    private String nameMatch(Class<?> clazz) {
-        return clazz.getCanonicalName();
+    private String[] nameMatch(List<Class> classes) {
+        String[] result = new String[classes.size()];
+        for (int i = 0; i < classes.size(); i++) {
+            result[i] = classes.get(i).getCanonicalName();
+        }
+        return result;
     }
 
     @Test
@@ -79,5 +82,25 @@ public class ClazzImplTest {
         clazz.setFinal(true);
         assertTrue("".equals(clazzManager.writeOut(clazz)));
         assertTrue(clazzManager.hasError(CANNOT_BE_ABSTRACT_AND_FINAL));
+    }
+
+    @Test
+    public void interfaceCannotBePrivateTest() {
+        clazz.setClassType(Clazz.ClassType.INTERFACE);
+        clazz.setVisibility(Clazz.Visibility.PRIVATE);
+        clazzManager.writeOut(clazz);
+        assertTrue(clazzManager.hasError(CANNOT_HAVE_PRIVATE_INTERFACE));
+    }
+
+    @Test
+    public void removeResultTest() {
+        ClazzValidator validator = new ClazzValidator();
+        ClazzImplProcessor processor = new ClazzImplProcessor(validator);
+        clazz.setClassType(null);
+        processor.writeOut((ClazzImpl) clazz);
+
+        assertTrue(validator.getErrorsAsCSV().contains(MUST_BE_CLASS_OR_INTERFACE.name()));
+        validator.removeResult(MUST_BE_CLASS_OR_INTERFACE);
+        assertFalse(validator.getErrorsAsCSV().contains(MUST_BE_CLASS_OR_INTERFACE.name()));
     }
 }

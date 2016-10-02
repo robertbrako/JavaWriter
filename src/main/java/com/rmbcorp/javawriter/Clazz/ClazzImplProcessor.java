@@ -1,22 +1,30 @@
 package com.rmbcorp.javawriter.clazz;
 
 import com.rmbcorp.util.StringUtil;
+import com.rmbcorp.util.ValidationManager;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
+
+import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError;
 
 /**ClazzImplProcessor
  * Created by rmbdev on 10/1/2016.
  */
-class ClazzImplProcessor {
+final class ClazzImplProcessor {
 
     private static final char ONE_LINE = '\n';
     private static final char[] TWO_LINES = { '\n', '\n' };
+    public static final String VARIABLE_PLACEHOLDER = "//%%VARIABLES%%";
 
     private StringBuilder builder;
+    private ValidationManager<ClazzError> validator;
+    
+    ClazzImplProcessor(ValidationManager<ClazzError> validator) {
+        this.validator = validator;
+    }
 
     String writeOut(ClazzImpl clazz) {
         builder = new StringBuilder("");
@@ -24,10 +32,10 @@ class ClazzImplProcessor {
         setupImports(clazz.getImports(), clazz.getExtension(), clazz.getImplementations());
         buildImports(clazz.getImports());
         buildClassOrInterface(clazz.getClassType(), clazz);
-        buildBody(clazz.getClassName(), clazz.getExtension(), clazz.getImplementations(), clazz.getImports());
+        buildBody(clazz.getExtension(), clazz.getImplementations(), clazz.getImports());
         closeBody();
 
-        return builder.toString();
+        return validator.hasErrors() ? "" : builder.toString();
     }
 
     private void buildPackage(String packagePath) {
@@ -57,13 +65,19 @@ class ClazzImplProcessor {
     }
 
     private void buildClassOrInterface(Clazz.ClassType classType, ClazzImpl clazz) {
-        if (classType.equals(Clazz.ClassType.INTERFACE)) {
-            buildInterface(clazz.getVisibility(), clazz.getClassName());
-        } else if (classType.equals(Clazz.ClassType.CLASS)) {
-            buildClass(clazz.getClassName(), clazz.getVisibility(), clazz.isFinal(), clazz.isAbstract(), clazz.getExtension());
+        if (StringUtil.isEmpty(clazz.getClassName())) {
+            validator.addResult(ClazzError.CANNOT_HAVE_EMPTY_CLASS_NAME);
+            return;
         }
-        builder.append(" {");
+        if (Clazz.ClassType.INTERFACE.equals(classType)) {
+            buildInterface(clazz.getVisibility(), clazz.getClassName());
+        } else if (Clazz.ClassType.CLASS.equals(classType)) {
+            buildClass(clazz.getClassName(), clazz.getVisibility(), clazz.isFinal(), clazz.isAbstract(), clazz.getExtension());
+        } else {
+            validator.addResult(ClazzError.MUST_BE_CLASS_OR_INTERFACE);
+        }
         buildImplementations(classType, clazz.getImplementations());
+        builder.append(" {");
     }
 
     private void buildClass(String className, Clazz.Visibility visibility, boolean isFinal, boolean isAbstract, Class extension) {
@@ -75,19 +89,23 @@ class ClazzImplProcessor {
                 builder.append(" extends ");
                 builder.append(getClassSimpleName(extension.toString()));
             }
+        } else {
+            validator.addResult(ClazzError.CANNOT_BE_ABSTRACT_AND_FINAL);
         }
     }
 
     private void buildInterface(Clazz.Visibility visibility, String className) {
         if (Clazz.Visibility.PUBLIC.equals(visibility)) {
             builder.append(visibility.toString()).append(' ');
+        } else if (Clazz.Visibility.PRIVATE.equals(visibility)) {
+            validator.addResult(ClazzError.CANNOT_HAVE_PRIVATE_INTERFACE);
         }
         builder.append("interface ").append(className);
     }
 
     private void buildImplementations(Clazz.ClassType classType, Set<Class> implementations) {
         if (!implementations.isEmpty()) {
-            builder.append(classType.equals(Clazz.ClassType.CLASS) ? " implements " : " extends ");
+            builder.append(Clazz.ClassType.CLASS.equals(classType) ? " implements " : " extends ");
             for (Class object : implementations) {
                 builder.append(getClassSimpleName(object.toString()));
                 builder.append(", ");
@@ -108,33 +126,39 @@ class ClazzImplProcessor {
         return object.substring(begin).replaceAll(";", "");
     }
 
-    private void buildBody(String className, Class extension, Set<Class> implementations, Set<Class> imports) {
+    private void buildBody(Class extension, Set<Class> implementations, Set<Class> imports) {
         int lev = 1;
-        builder.append(TWO_LINES);
+        builder.append(VARIABLE_PLACEHOLDER).append(ONE_LINE);
         if (extension != null) {
             implementations.add(extension);
         }
+        Set<JVariable> allVariables = new HashSet<>();
+        Set<JVariable> variables;
         for (Class clazz : implementations) {
             Method[] methods = clazz.getDeclaredMethods();
-            String methodName;
-            List<String> variables;
+            String methodName, methodParamType;
             for (Method method : methods) {
                 methodName = method.getName();
                 builder.append(tab(lev)).append("@Override").append(ONE_LINE);
                 builder.append(tab(lev)).append(getScope(method.getModifiers()))
                         .append(getReturnType(method.getReturnType())).append(' ').append(methodName);
-                variables = getParams(method.getParameterTypes(), builder, methodName.startsWith("set"), className, imports);
+                methodParamType = getParamType(method.toGenericString());
+                variables = getParams(method.getParameterTypes(), methodParamType, methodName.startsWith("set"), imports);
+                allVariables.addAll(variables);
                 builder.append(" {").append(ONE_LINE);
                 lev++;
-                for (String var : variables) {
-                    builder.append(tab(lev)).append("this.").append(var).append(" = ").append(var).append(";").append(ONE_LINE);
+                String varName;
+                for (JVariable var : variables) {
+                    varName = var.getName();
+                    builder.append(tab(lev)).append("this.").append(varName).append(" = ").append(varName).append(";").append(ONE_LINE);
                 }
-                generateForLoop(method.getParameterTypes(), lev);
+                generateForLoop(method.getParameterTypes(), methodParamType, lev);
                 lev--;
                 builder.append(tab(lev)).append("}").append(TWO_LINES);
             }
         }
         implementations.remove(extension);
+        buildVariables(allVariables, lev);
     }
 
     private static String tab(int tabLevel) {
@@ -163,13 +187,16 @@ class ClazzImplProcessor {
                 getClassSimpleName(result);
     }
 
-    private List<String> getParams(Class<?>[] parameterTypes, StringBuilder builder, boolean makeSetter, String className, Set<Class> imports) {
-        List<String> variables = new ArrayList<>();
+    private Set<JVariable> getParams(Class<?>[] parameterTypes, String methodParamType, boolean makeSetter, Set<Class> imports) {
+        Set<JVariable> variables = new HashSet<>();
         builder.append("(");
         for (Class<?> parameterType : parameterTypes) {
             String param = getClassSimpleName(parameterType.toString()); // need non-empty
             param = dollarToDot(param);
             builder.append(param);
+            if (!"".equals(methodParamType)) {
+                builder.append('<').append(methodParamType).append('>');
+            }
             builder.append(" ");
             param = param.substring(param.lastIndexOf('.') + 1);
 
@@ -182,10 +209,10 @@ class ClazzImplProcessor {
             builder.append(varName);
             builder.append(", ");
             if (makeSetter) {
-                variables.add(varName);
+                variables.add(new JVariable(varName, param));
             }
             if (imports.add(parameterType)) {
-                sneakInImport(parameterType, className);
+                sneakInImport(parameterType);
             }
         }
         trimComma(builder);
@@ -197,8 +224,8 @@ class ClazzImplProcessor {
         return param.replaceAll("\\$", ".");
     }
 
-    private void sneakInImport(Class<?> parameterType, String className) {
-        String importSection = builder.substring(0, builder.indexOf(className));
+    private void sneakInImport(Class<?> parameterType) {
+        String importSection = builder.substring(0, builder.indexOf("{"));
         int index = importSection.lastIndexOf("import");
         index = importSection.indexOf(';', index) + 1;
         String importName = splitClassString(parameterType);
@@ -207,12 +234,18 @@ class ClazzImplProcessor {
         }
     }
 
-    private void generateForLoop(Class<?>[] parameterTypes, int tabLev) {
+    private void generateForLoop(Class<?>[] parameterTypes, String methodParamType, int tabLev) {
         boolean useEmptyBody = true;
-        for (Class parameterType : parameterTypes) {
-            if (parameterType.toString().contains("Collection")) {
+        String iterable;
+        for (Class<?> parameterType : parameterTypes) {
+            iterable = Iterables.contains(parameterType.getSimpleName());
+            if (!"".equals(methodParamType)) {
                 useEmptyBody = false;
-                builder.append(tab(tabLev)).append("for (Object object : collection) {").append(ONE_LINE);
+                builder.append(tab(tabLev)).append("for (")
+                        .append(methodParamType).append(" ").append(JavaKeywords.replaceJavaKeyword(methodParamType))
+                        .append(" : ")
+                        .append(iterable.toLowerCase())
+                        .append(") {").append(ONE_LINE);
                 builder.append(tab(tabLev+1)).append("//empty").append(ONE_LINE);
                 builder.append(tab(tabLev)).append("}").append(ONE_LINE);
             }
@@ -222,7 +255,48 @@ class ClazzImplProcessor {
         }
     }
 
+    private String getParamType(String method) {
+        int beginIndex = method.indexOf('<');
+        int endIndex = method.lastIndexOf('>');
+        if (beginIndex > -1) {
+            String[] className = method.substring(beginIndex+1, endIndex).split("\\.");
+            return className[className.length-1];
+        }
+        return "";
+    }
+
+    private void buildVariables(Set<JVariable> variables, int tabLevel) {
+        int lineBegin = builder.indexOf(VARIABLE_PLACEHOLDER);
+        int lineEnd = lineBegin + VARIABLE_PLACEHOLDER.length();
+        String newLine = String.valueOf(TWO_LINES);
+        for (JVariable variable : variables) {
+            newLine += (tab(tabLevel) + variable.writeOut() + ";\n");
+        }
+        builder.replace(lineBegin, lineEnd, newLine);
+    }
+
     private void closeBody() {
         builder.append('}').append(ONE_LINE);
     }
+
+    private enum Iterables {
+
+        COLLECTION("Collection"), LIST("List"), SET("Set");
+
+        private final String refName;
+
+        Iterables(String refName) {
+            this.refName = refName;
+        }
+
+        static String contains(String className) {
+            for (Iterables it : values()) {
+                if (it.refName.equals(className)) {
+                    return className;
+                }
+            }
+           return "Object";
+        }
+    }
+
 }

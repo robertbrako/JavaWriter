@@ -8,5 +8,19 @@
     <artifactId>javawriter</artifactId>
     <version>0.1-SNAPSHOT</version>
 
+    <dependencies>
+        <dependency>
+            <groupId>com.rmbcorp</groupId>
+            <artifactId>util</artifactId>
+            <version>0.1-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>rmbCentral</id>
+            <url>file://C:\Users\root\.m2\repository</url>
+        </repository>
+    </repositories>
 
 </project>

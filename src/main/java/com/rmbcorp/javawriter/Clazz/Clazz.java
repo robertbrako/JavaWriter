@@ -1,3 +1,5 @@
+package com.rmbcorp.javawriter.clazz;
+
 import java.util.List;
 
 /**interface to drive automated class creation
@@ -21,5 +23,5 @@ public interface Clazz {
     void setClassType(ClassType classType);
     void addExtension(Class extension);
     void addImplementations(List<Class> implementation);
-    String writeOut();
+
 }

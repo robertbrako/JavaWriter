@@ -1,3 +1,8 @@
+package com.rmbcorp.javawriter;
+
+import com.rmbcorp.javawriter.clazz.Clazz;
+import com.rmbcorp.javawriter.clazz.ClazzImplManager;
+
 import java.util.AbstractQueue;
 import java.util.Arrays;
 import java.util.Collections;
@@ -8,16 +13,17 @@ import java.util.Collections;
 class JavaWriter {
 
     public static void main(String[] args) {
-        Clazz clazzImpl = new ClazzImpl("com.rmbcorp.javawriter", "ClazzImpl2");
-        clazzImpl.setClassType(Clazz.ClassType.CLASS);
-        clazzImpl.addImports(Arrays.<Class>asList(Integer.class, String.class, String.class));
-        clazzImpl.addExtension(AbstractQueue.class);
-        clazzImpl.setVisibility(Clazz.Visibility.PUBLIC);
-        clazzImpl.setFinal(true);
-        clazzImpl.addImplementations(Collections.<Class>singletonList(Clazz.class));
+        ClazzImplManager clazzManager = ClazzImplManager.getInstance();
+        Clazz clazz = clazzManager.get("com.rmbcorp.javawriter", "ClazzImpl2");
+        clazz.setClassType(Clazz.ClassType.CLASS);
+        clazz.addImports(Arrays.<Class>asList(Integer.class, String.class, String.class));
+        clazz.addExtension(AbstractQueue.class);
+        clazz.setVisibility(Clazz.Visibility.PUBLIC);
+        clazz.setFinal(true);
+        clazz.addImplementations(Collections.<Class>singletonList(Clazz.class));
 
         System.out.println();
-        System.out.println(clazzImpl.writeOut());
+        System.out.println(clazzManager.writeOut(clazz));
     }
 }
 
@@ -25,15 +31,15 @@ class JavaWriter {
 package com.rmbcorp.javawriter;
 
 import java.lang.String;
-import com.rmbcorp.javawriter.Clazz;
+import com.rmbcorp.javawriter.clazz.Clazz;
 import java.util.AbstractQueue;
 import java.lang.Integer;
 import java.lang.Object;
 import java.util.Collection;
 import java.lang.Class;
 import java.util.List;
-import com.rmbcorp.javawriter.Clazz.ClassType;
-import com.rmbcorp.javawriter.Clazz.Visibility;
+import com.rmbcorp.javawriter.clazz.Clazz.ClassType;
+import com.rmbcorp.javawriter.clazz.Clazz.Visibility;
 
 public final class ClazzImpl2 extends AbstractQueue implements Clazz  {
 

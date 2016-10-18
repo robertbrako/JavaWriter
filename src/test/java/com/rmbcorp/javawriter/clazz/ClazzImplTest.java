@@ -69,11 +69,11 @@ public class ClazzImplTest {
 
     @Test
     public void packageNameNotCurrentlyRequiredTest() {
-        String arbitrary = "Arbitrary";
-        Clazz packageless = clazzManager.get("", arbitrary);
+        String className = "ArbitraryName";
+        Clazz packageless = clazzManager.get("", className);
         packageless.setClassType(Clazz.ClassType.CLASS);
         String output = clazzManager.writeOut(packageless);
-        assertTrue(StringUtil.containsAll(output.split("\\s"), new String[]{ "class", arbitrary, "}" }));
+        assertTrue(StringUtil.containsAll(output.split("\\s"), new String[]{ "class", className, "}" }));
     }
 
     @Test
@@ -99,8 +99,18 @@ public class ClazzImplTest {
         clazz.setClassType(null);
         processor.writeOut((ClazzImpl) clazz);
 
-        assertTrue(validator.getErrorsAsCSV().contains(MUST_BE_CLASS_OR_INTERFACE.name()));
+        assertTrue(validator.containsError(MUST_BE_CLASS_OR_INTERFACE));
         validator.removeResult(MUST_BE_CLASS_OR_INTERFACE);
-        assertFalse(validator.getErrorsAsCSV().contains(MUST_BE_CLASS_OR_INTERFACE.name()));
+        assertFalse(validator.containsError(MUST_BE_CLASS_OR_INTERFACE));
+    }
+
+    @Test
+    public void extendedKeywordReplacementTest() {
+        String testString = "Goto";
+        String result = JavaKeywords.replaceJavaKeyword(testString);
+        assertTrue(testString.equalsIgnoreCase(result));
+
+        result = JavaKeywords.replaceJavaKeywordSafe(testString);
+        assertFalse(testString.equalsIgnoreCase(result));
     }
 }

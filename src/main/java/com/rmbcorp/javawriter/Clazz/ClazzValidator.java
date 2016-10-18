@@ -43,6 +43,10 @@ public class ClazzValidator implements com.rmbcorp.util.ValidationManager<ClazzE
         errorTypes.clear();
     }
 
+    boolean containsError(ClazzError error) {
+        return errorTypes.contains(error);
+    }
+
     String getErrorsAsCSV() {
         StringBuilder builder = new StringBuilder(errorTypes.size() * 32);
         for (ClazzError errorType : errorTypes) {

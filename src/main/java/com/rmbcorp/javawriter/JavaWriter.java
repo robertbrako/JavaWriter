@@ -5,6 +5,7 @@ import com.rmbcorp.javawriter.autojavac.AutoJavacException;
 import com.rmbcorp.javawriter.autojavac.Compiler;
 import com.rmbcorp.javawriter.autojavac.JavaCompiler;
 import com.rmbcorp.javawriter.clazz.Clazz;
+import com.rmbcorp.javawriter.clazz.Clazz.Visibility;
 import com.rmbcorp.javawriter.clazz.ClazzImplManager;
 import com.rmbcorp.javawriter.logman.LoggerManager;
 import com.rmbcorp.javawriter.logman.TempLogger;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**Need to produce classes on the fly somehow...
@@ -22,11 +24,10 @@ import java.util.Map;
 class JavaWriter {
 
     public static final String DEFAULT_FILENAME = "default";
-    private static final String SL = "\"";
 
     enum JavacOpts { CLASSPATH, D }
     enum JWOpts implements ArgParser.HasDefault {
-        DEBUGENV, USESOUT("false"), FILENAME, PACKAGE, GEN(Compiler.GEN_FOLDER);
+        DEBUGENV, USESOUT("false"), FILENAME, PACKAGE, GEN(Compiler.GEN_FOLDER), CLASSTYPE("class"), VISIBILITY(Visibility.PACKAGE.toString());
 
         private final String defaultVal;
 
@@ -78,7 +79,8 @@ class JavaWriter {
         }
         logger.logPlain("[info]Filename:" + filename);
         buildJob.setFileName(filename);
-        Clazz clazz = getClazz(clazzManager, jwOptions.get(JWOpts.PACKAGE), filename);
+        jwOptions.put(JWOpts.FILENAME, filename);
+        Clazz clazz = getClazz(clazzManager, jwOptions);
         buildJob.setFileContents(clazzManager.writeOut(clazz));
         return buildJob;
     }
@@ -94,13 +96,17 @@ class JavaWriter {
         return filename;
     }
 
-    private static Clazz getClazz(ClazzImplManager clazzManager, String packageName, String filename) {
-        Clazz clazz = clazzManager.get(packageName, filename);
-        clazz.setClassType(Clazz.ClassType.CLASS);
+    private static Clazz getClazz(ClazzImplManager clazzManager, Map<JWOpts, String> jwOptions) {
+        Clazz clazz = clazzManager.get(jwOptions.get(JWOpts.PACKAGE), jwOptions.get(JWOpts.FILENAME));
+        clazz.setClassType(Clazz.ClassType.valueOf(jwOptions.get(JWOpts.CLASSTYPE).toUpperCase()));
+        try {
+            clazz.setVisibility(Visibility.valueOf(jwOptions.get(JWOpts.VISIBILITY).toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            clazz.setVisibility(Visibility.PACKAGE);
+        }
         clazz.addImports(Arrays.<Class>asList(Integer.class, String.class, String.class));
-        clazz.setVisibility(Clazz.Visibility.PUBLIC);
         clazz.setFinal(true);
-        clazz.addImplementations(Collections.<Class>singletonList(Clazz.class));
+        clazz.addImplementations(Collections.<Class>singletonList(List.class));
         return clazz;
     }
 

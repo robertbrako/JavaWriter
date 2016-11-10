@@ -5,7 +5,12 @@ import com.rmbcorp.util.ValidationManager;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError;
@@ -18,6 +23,7 @@ final class ClazzImplProcessor {
     private static final char ONE_LINE = '\n';
     private static final char[] TWO_LINES = { '\n', '\n' };
     public static final String VARIABLE_PLACEHOLDER = "//%%VARIABLES%%";
+    public static final String IMPORT_PLACEHOLDER = "//%%IMPORTS%%";
 
     private StringBuilder builder;
     private ValidationManager<ClazzError> validator;
@@ -28,20 +34,19 @@ final class ClazzImplProcessor {
 
     String writeOut(ClazzImpl clazz) {
         builder = new StringBuilder("");
-        buildPackage(clazz.getPackagePath());
         setupImports(clazz.getImports(), clazz.getExtension(), clazz.getImplementations());
-        buildImports(clazz.getImports());
         buildClassOrInterface(clazz.getClassType(), clazz);
         buildBody(clazz.getExtension(), clazz.getImplementations(), clazz.getImports());
         closeBody();
+        buildImports(clazz.getImports());
+        buildPackage(clazz.getPackagePath());
 
         return validator.hasErrors() ? "" : builder.toString();
     }
 
     private void buildPackage(String packagePath) {
         if (!StringUtil.isEmpty(packagePath)) {
-            builder.append("package ").append(packagePath).append(';');
-            builder.append(TWO_LINES);
+            builder.insert(0, "package " + packagePath + ';' + ONE_LINE + ONE_LINE);
         }
     }
 
@@ -53,11 +58,19 @@ final class ClazzImplProcessor {
     }
 
     private void buildImports(Set<Class> imports) {
-        for (Object object : imports) {
-            builder.append("import ").append(splitClassString(object)).append(';');
-            builder.append(ONE_LINE);
+        builder.insert(0, IMPORT_PLACEHOLDER);
+        int start = builder.length();
+        for (Class object : imports) {
+            String importName = splitClassString(object);
+            if (importName.equals(JavaKeywords.replaceJavaKeyword(importName)) && !"void".equals(importName) && !importName.startsWith("[L")) {
+                builder.append("import ").append(dollarToDot(splitClassString(object))).append(';');
+                builder.append(ONE_LINE);
+            }
         }
         builder.append(ONE_LINE);
+        String substring = builder.substring(start, builder.length());
+        builder.replace(start, builder.length(), "");
+        builder.replace(0, IMPORT_PLACEHOLDER.length(), substring);
     }
 
     private static String splitClassString(Object object) {
@@ -65,14 +78,17 @@ final class ClazzImplProcessor {
     }
 
     private void buildClassOrInterface(Clazz.ClassType classType, ClazzImpl clazz) {
-        if (StringUtil.isEmpty(clazz.getClassName())) {
+        String className = clazz.getClassName();
+        if (StringUtil.isEmpty(className)) {
             validator.addResult(ClazzError.CANNOT_HAVE_EMPTY_CLASS_NAME);
-            return;
+        }
+        if (!className.equals(JavaKeywords.replaceJavaKeywordSafe(className))) {
+            validator.addResult(ClazzError.INVALID_CLASS_NAME);
         }
         if (Clazz.ClassType.INTERFACE.equals(classType)) {
-            buildInterface(clazz.getVisibility(), clazz.getClassName());
+            buildInterface(clazz.getVisibility(), className);
         } else if (Clazz.ClassType.CLASS.equals(classType)) {
-            buildClass(clazz.getClassName(), clazz.getVisibility(), clazz.isFinal(), clazz.isAbstract(), clazz.getExtension());
+            buildClass(className, clazz.getVisibility(), clazz.isFinal(), clazz.isAbstract(), clazz.getExtension());
         } else {
             validator.addResult(ClazzError.MUST_BE_CLASS_OR_INTERFACE);
         }
@@ -107,7 +123,7 @@ final class ClazzImplProcessor {
         if (!implementations.isEmpty()) {
             builder.append(Clazz.ClassType.CLASS.equals(classType) ? " implements " : " extends ");
             for (Class object : implementations) {
-                builder.append(getClassSimpleName(object.toString()));
+                builder.append(dollarToDot(getClassSimpleName(object.toString())));
                 builder.append(", ");
             }
             trimComma(builder);
@@ -115,7 +131,7 @@ final class ClazzImplProcessor {
     }
 
     private static void trimComma(StringBuilder result) {
-        int length = result.lastIndexOf(",");
+        int length = result.lastIndexOf(", ");
         if (length != -1) {
             result.replace(length, length + 1, "");
         }
@@ -134,31 +150,65 @@ final class ClazzImplProcessor {
         }
         Set<JVariable> allVariables = new HashSet<>();
         Set<JVariable> variables;
+        Class<?> returnClass;
+        List<String> returnTypeAndParams;
+        String returnType, varName;
         for (Class clazz : implementations) {
             Method[] methods = clazz.getDeclaredMethods();
             String methodName, methodParamType;
             for (Method method : methods) {
                 methodName = method.getName();
                 builder.append(tab(lev)).append("@Override").append(ONE_LINE);
-                builder.append(tab(lev)).append(getScope(method.getModifiers()))
-                        .append(getReturnType(method.getReturnType())).append(' ').append(methodName);
+                returnClass = method.getReturnType();
+                builder.append(tab(lev)).append(getScope(method.getModifiers()));
+                returnTypeAndParams = getReturnTypeAndParams(method);
+                returnType = returnTypeAndParams.get(0);
+                builder.append(returnType).append(' ').append(methodName);
                 methodParamType = getParamType(method.toGenericString());
-                variables = getParams(method.getParameterTypes(), methodParamType, methodName.startsWith("set"), imports);
+                variables = getParams(returnTypeAndParams.subList(1, returnTypeAndParams.size()), methodName.startsWith("set"), imports);
                 allVariables.addAll(variables);
                 builder.append(" {").append(ONE_LINE);
                 lev++;
-                String varName;
                 for (JVariable var : variables) {
                     varName = var.getName();
                     builder.append(tab(lev)).append("this.").append(varName).append(" = ").append(varName).append(";").append(ONE_LINE);
                 }
                 generateForLoop(method.getParameterTypes(), methodParamType, lev);
+                if (!returnType.equals("void")) {
+                    builder.append(tab(lev)).append("return ").append(conjureReturnObject(returnClass));
+                }
+                imports.add(returnClass);
                 lev--;
                 builder.append(tab(lev)).append("}").append(TWO_LINES);
             }
         }
         implementations.remove(extension);
         buildVariables(allVariables, lev);
+    }
+
+    private String conjureReturnObject(Class<?> returnClass) {
+        String returnText = "null;";
+        String simpleName = returnClass.getSimpleName();
+        if (returnClass.isPrimitive()) {
+            if ("int".equals(simpleName)) {
+                returnText = "0;";
+            }
+            if ("boolean".equals(simpleName)) {
+                returnText = "false;";
+            }
+            if ("char".equals(simpleName)) {
+                returnText = "'\\0';";
+            }
+        } else {
+            if (returnClass.isInterface() || returnClass.getCanonicalName().contains("abstract")) {
+                returnText = "null;";
+            } else if (simpleName.contains("[]")) {
+                returnText = "new " + simpleName + "{};";
+            } else {
+                returnText = "new " + simpleName + "();";
+            }
+        }
+        return returnText + ONE_LINE;
     }
 
     private static String tab(int tabLevel) {
@@ -181,41 +231,81 @@ final class ClazzImplProcessor {
         return scope;
     }
 
-    private String getReturnType(Class<?> returnType) {
-        String result = returnType.toString();
-        return result.contains("[L") ? "List<".concat(getClassSimpleName(result)).concat(">") :
-                getClassSimpleName(result);
-    }
-
-    private Set<JVariable> getParams(Class<?>[] parameterTypes, String methodParamType, boolean makeSetter, Set<Class> imports) {
-        Set<JVariable> variables = new HashSet<>();
-        builder.append("(");
-        for (Class<?> parameterType : parameterTypes) {
-            String param = getClassSimpleName(parameterType.toString()); // need non-empty
-            param = dollarToDot(param);
-            builder.append(param);
-            if (!"".equals(methodParamType)) {
-                builder.append('<').append(methodParamType).append('>');
-            }
-            builder.append(" ");
-            param = param.substring(param.lastIndexOf('.') + 1);
-
-            String varName = JavaKeywords.replaceJavaKeyword(param);
-            if (varName.equals(param)) {
-                char[] paramCopy = varName.toCharArray();
-                paramCopy[0] = Character.toLowerCase(paramCopy[0]);
-                varName = new String(paramCopy);
-            }
-            builder.append(varName);
-            builder.append(", ");
-            if (makeSetter) {
-                variables.add(new JVariable(varName, param));
-            }
-            if (imports.add(parameterType)) {
-                sneakInImport(parameterType);
+    private List<String> getReturnTypeAndParams(Method method) {//needs more testing in different scenarios
+        List<String> results = new ArrayList<>();
+        String[] contents = method.toString().split(" ");
+        int startIndex = 1; //refine...not sure about when we're extending concrete classes...
+        for (String modifier : Arrays.asList("abstract", "final", "native", "static")) {
+            for (String item : contents) {
+                if (modifier.equalsIgnoreCase(item)) {
+                    startIndex++;
+                }
             }
         }
-        trimComma(builder);
+        contents[startIndex] = getClassSimpleName(contents[startIndex]);
+        //assume for now that contents[startIndex] is the return type; sample: "com.foo.Clazz.doMethod(java.lang.Object)"
+        results.add(contents[startIndex]);
+        if (contents.length > startIndex+1) {//remove this if always true
+            String[] params = contents[startIndex + 1].split("\\(");
+            params = params[1].split(",");
+            String lastParam = params[params.length - 1];
+            params[params.length - 1] = lastParam.substring(0, lastParam.length()-1);
+            for (String item : params) {
+                if (!"".equals(item)) {
+                    if (Iterables.contains(getClassSimpleName(item)) && !method.toGenericString().contains("?")) {
+                        item += ("<" + getParamType(method.toGenericString()) + ">");
+                    }
+                    results.add(item);
+                }
+            }
+        }
+        return results;
+    }
+
+    private Set<JVariable> getParams(List<String> parameterTypes, boolean makeSetter, Set<Class> imports) {
+        Set<JVariable> variables = new HashSet<>();
+        builder.append("(");
+        String param, simpleName;//param as String was like "java.lang.String" - get this from Class object instead.
+        Map<Integer, Integer> paramCounts = new HashMap<>();
+        int typeCount;
+        for (int i = 0, parameterTypesLength = parameterTypes.size(); i < parameterTypesLength; i++) {
+            param = parameterTypes.get(i);
+            simpleName = getClassSimpleName(dollarToDot(param));
+            builder.append(simpleName);
+            builder.append(" ");
+
+            String trimmedParam = cleanParamString(simpleName);
+            String varName = getVarName(trimmedParam);
+            if (paramCounts.get(param.hashCode()) == null) {
+                paramCounts.put(param.hashCode(), 0);
+            } else {
+                typeCount = paramCounts.get(param.hashCode())+1;
+                paramCounts.put(param.hashCode(), typeCount);
+                varName += typeCount;
+            }
+            builder.append(varName);
+            if (i < parameterTypesLength - 1) {
+                builder.append(", ");
+            }
+            if (makeSetter) {
+                variables.add(new JVariable(varName, simpleName));
+            }
+            boolean found = false;
+            if (!param.equals(simpleName)) {
+                for (Class clazz : imports) {//future: make more efficient
+                    if (clazz.getSimpleName().contains(trimmedParam)) {
+                        found = true;
+                    }
+                }
+                if (!found) {
+                    try {
+                        imports.add(Class.forName(param));
+                    } catch (ClassNotFoundException ignored) {
+                        //figure out what to report
+                    }
+                }
+            }
+        }
         builder.append(")");
         return variables;
     }
@@ -224,25 +314,25 @@ final class ClazzImplProcessor {
         return param.replaceAll("\\$", ".");
     }
 
-    private void sneakInImport(Class<?> parameterType) {
-        String importSection = builder.substring(0, builder.indexOf("{"));
-        int index = importSection.lastIndexOf("import");
-        index = importSection.indexOf(';', index) + 1;
-        String importName = splitClassString(parameterType);
-        if (importName.equals(JavaKeywords.replaceJavaKeyword(importName))) {
-            builder.insert(index, String.valueOf(ONE_LINE).concat("import ").concat(dollarToDot(importName).concat(";")));
-        }
+    private String cleanParamString(String string) {
+        return string.replace("[]", "").replaceAll("<.*>", "");
+    }
+
+    private String getVarName(String param) {
+        char[] paramCopy = param.toCharArray();
+        paramCopy[0] = Character.toLowerCase(paramCopy[0]);
+        return JavaKeywords.replaceJavaKeyword(new String(paramCopy));
     }
 
     private void generateForLoop(Class<?>[] parameterTypes, String methodParamType, int tabLev) {
         boolean useEmptyBody = true;
         String iterable;
         for (Class<?> parameterType : parameterTypes) {
-            iterable = Iterables.contains(parameterType.getSimpleName());
-            if (!"".equals(methodParamType)) {
+            iterable = parameterType.getSimpleName();
+            if (!"".equals(methodParamType) && Iterables.contains(iterable) && !methodParamType.startsWith("?")) {//todo deal with ?
                 useEmptyBody = false;
                 builder.append(tab(tabLev)).append("for (")
-                        .append(methodParamType).append(" ").append(JavaKeywords.replaceJavaKeyword(methodParamType))
+                        .append(methodParamType).append(" ").append(getVarName(methodParamType))
                         .append(" : ")
                         .append(iterable.toLowerCase())
                         .append(") {").append(ONE_LINE);
@@ -289,13 +379,13 @@ final class ClazzImplProcessor {
             this.refName = refName;
         }
 
-        static String contains(String className) {
+        static boolean contains(String className) {
             for (Iterables it : values()) {
                 if (it.refName.equals(className)) {
-                    return className;
+                    return true;
                 }
             }
-           return "Object";
+           return false;
         }
     }
 

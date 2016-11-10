@@ -7,10 +7,13 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**ClazzImplTest
  * Created by rmbdev on 10/1/2016.
@@ -19,6 +22,7 @@ public class ClazzImplTest {
 
     public static final Class<Integer> INTEGER_CLASS = Integer.class;
     public static final Class<String> STRING_CLASS = String.class;
+    public static final String CLASS_NAME = "ArbitraryName";
     ClazzImplManager clazzManager;
     Clazz clazz;
 
@@ -69,11 +73,10 @@ public class ClazzImplTest {
 
     @Test
     public void packageNameNotCurrentlyRequiredTest() {
-        String className = "ArbitraryName";
-        Clazz packageless = clazzManager.get("", className);
+        Clazz packageless = clazzManager.get("", CLASS_NAME);
         packageless.setClassType(Clazz.ClassType.CLASS);
         String output = clazzManager.writeOut(packageless);
-        assertTrue(StringUtil.containsAll(output.split("\\s"), new String[]{ "class", className, "}" }));
+        assertTrue(StringUtil.containsAll(output.split("\\s"), new String[]{ "class", CLASS_NAME, "}" }));
     }
 
     @Test
@@ -112,5 +115,35 @@ public class ClazzImplTest {
 
         result = JavaKeywords.replaceJavaKeywordSafe(testString);
         assertFalse(testString.equalsIgnoreCase(result));
+    }
+
+    @Test public void testParamTest() {
+        Clazz clazz = clazzManager.get("com.rmbcorp.javawriter", CLASS_NAME);
+        clazz.setClassType(Clazz.ClassType.CLASS);
+        clazz.addImplementations(Collections.<Class>singletonList(ParamTest.class));
+        Pattern pattern = Pattern.compile("String setFoo\\((.*)\\)");
+        Matcher matcher = pattern.matcher(clazzManager.writeOut(clazz));
+        if (matcher.find()) {
+            String[] group = matcher.group(1).split(",");
+            assertTrue(group.length == 3);
+            assertTrue(!group[0].equalsIgnoreCase(group[1]) && !group[1].equalsIgnoreCase(group[2]) && !group[2].equalsIgnoreCase(group[0]));
+        } else {
+            fail();
+        }
+    }
+
+    @Test public void returnStringTest() {
+        Clazz clazz = clazzManager.get("", CLASS_NAME);
+        clazz.setClassType(Clazz.ClassType.CLASS);
+        clazz.addImplementations(Collections.<Class>singletonList(ParamTest.class));
+
+        Pattern pattern = Pattern.compile("return.*;");
+        Matcher matcher = pattern.matcher(clazzManager.writeOut(clazz));
+        assertTrue(matcher.find() && matcher.group().contains("new String()"));
+    }
+
+    interface ParamTest {
+        @SuppressWarnings("unused")
+        String setFoo(String bar, String notbar, String reallyNotBar);
     }
 }

@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -31,9 +32,13 @@ public class JavacTestIT {
     private JavaCompiler javaCompiler = new JavaCompiler(logger);
 
     @Test public void minimalBuildJobTest() {
-        testFile = new File(RELATIVE_PATH + SL + FILE_NAME + EXT);
+        testFile = new File(getNormalPathname());
         compile(new JavacJob(FILE_NAME, RELATIVE_PATH));
         assertTrue(testFile.exists());
+    }
+
+    private String getNormalPathname() {
+        return RELATIVE_PATH + SL + FILE_NAME + EXT;
     }
 
     private void compile(BuildJob buildJob) {
@@ -46,7 +51,7 @@ public class JavacTestIT {
     }
 
     @Test public void emptyFileNameIsNoGoodTest() {
-        testFile = new File(RELATIVE_PATH + SL + FILE_NAME + EXT);
+        testFile = new File(getNormalPathname());
         try {
             javaCompiler.compile(new JavacJob("", RELATIVE_PATH));
         } catch (AutoJavacException e) {
@@ -62,7 +67,7 @@ public class JavacTestIT {
     }
 
     @Test public void pathWithOrWithoutSlashIsSame() {
-        testFile = new File(RELATIVE_PATH + SL + FILE_NAME + EXT);
+        testFile = new File(getNormalPathname());
         compile(new JavacJob(FILE_NAME, RELATIVE_PATH));
         assertTrue(testFile.exists());
         testFile.delete();
@@ -72,7 +77,7 @@ public class JavacTestIT {
     }
 
     @Test public void fullCompileTest() {
-        testFile = new File(RELATIVE_PATH + SL + FILE_NAME + EXT);
+        testFile = new File(getNormalPathname());
         ClazzImplManager clazzImplManager = ClazzImplManager.getInstance();
         Clazz clazz = setupClass(clazzImplManager.get("", FILE_NAME));
         BuildJob buildJob = new JavacJob(FILE_NAME, RELATIVE_PATH);
@@ -87,7 +92,7 @@ public class JavacTestIT {
     }
 
     private Clazz setupClass(Clazz clazz) {
-        clazz.addImplementations(Collections.<Class>singletonList(Runnable.class));
+        clazz.addImplementations(Collections.<Class>singletonList(List.class));
         clazz.setClassType(Clazz.ClassType.CLASS);//todo: need to make this required for construction
         return clazz;
     }

@@ -78,8 +78,7 @@ public class JavaCompiler implements Compiler {
         ) {
             String line;
             while ( (line = ber.readLine()) != null) {
-                logger.logPlain(line);
-                bw.write(line);
+                logger.logPlain("[error]" + line);
             }
             while ( (line = bis.readLine()) != null) {
                 logger.logPlain("[debug]" + line);

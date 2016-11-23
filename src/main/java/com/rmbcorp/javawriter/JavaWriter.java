@@ -1,5 +1,6 @@
 package com.rmbcorp.javawriter;
 
+import com.rmbcorp.argparser.ArgParser;
 import com.rmbcorp.javawriter.autojavac.AutoJavacException;
 import com.rmbcorp.javawriter.autojavac.Compiler;
 import com.rmbcorp.javawriter.autojavac.JavaCompiler;
@@ -8,7 +9,9 @@ import com.rmbcorp.javawriter.clazz.ClazzImplManager;
 import com.rmbcorp.javawriter.logman.LoggerManager;
 import com.rmbcorp.javawriter.logman.TempLogger;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -21,18 +24,42 @@ class JavaWriter {
     public static final String DEFAULT_FILENAME = "default";
     private static final String SL = "\"";
 
+    enum JavacOpts { CLASSPATH, D }
+    enum JWOpts implements ArgParser.HasDefault {
+        DEBUGENV, USESOUT("false"), FILENAME, PACKAGE, GEN(Compiler.GEN_FOLDER);
+
+        private final String defaultVal;
+
+        JWOpts() { this.defaultVal = ""; }
+
+        JWOpts(String defaultVal) {
+            this.defaultVal = defaultVal;
+        }
+
+        @Override
+        public String getDefault() {
+            return defaultVal;
+        }
+    }
+
     private static TempLogger logger;
     private static Compiler compiler;
     private static ClazzImplManager clazzManager;
+    private static ArgParser argParser;
     private static boolean debugEnv = false;
-    private static boolean useSout = true;
+    private static boolean useSout;
 
     public static void main(String[] args) {
+        argParser = ArgParser.Provider.getDefault();
+        Map<JWOpts, String> jwOptions = argParser.getArgs(args, "-", JWOpts.class);
+        Map<JavacOpts, String> javacOptsMap = argParser.getArgs(args, "-", JavacOpts.class);
+        debugEnv = Boolean.parseBoolean(jwOptions.get(JWOpts.DEBUGENV));
+        useSout = Boolean.parseBoolean(jwOptions.get(JWOpts.USESOUT));
         logger = new LoggerManager(useSout);
         compiler = new JavaCompiler(logger);
         clazzManager = ClazzImplManager.getInstance();
 
-        JavacJob buildJob = getJavacJob();
+        JavacJob buildJob = getJavacJob(jwOptions, javacOptsMap);
         try {
             compiler.compile(buildJob);
         } catch (AutoJavacException ignored) {
@@ -40,24 +67,25 @@ class JavaWriter {
         checkDebug();
     }
 
-    private static JavacJob getJavacJob() {
-        JavacJob buildJob = new JavacJob("", Compiler.GEN_FOLDER);
-        buildJob.setClassPath(SL + System.getenv().get("USERPROFILE") + "\\IdeaProjects\\JavaWriter\\target\\classes" + SL);
-        buildJob.setBinPath(Compiler.BIN_FOLDER);
+    private static JavacJob getJavacJob(Map<JWOpts, String> jwOptions, Map<JavacOpts, String> javacOptsMap) {
+        JavacJob buildJob = new JavacJob(jwOptions.get(JWOpts.FILENAME), jwOptions.get(JWOpts.GEN));
+        buildJob.setClassPath(javacOptsMap.get(JavacOpts.CLASSPATH));
+        buildJob.setBinPath(javacOptsMap.get(JavacOpts.D));
 
         String filename = buildJob.getFileName();
         if (filename.isEmpty()) {
             filename = getFilename();
         }
+        logger.logPlain("[info]Filename:" + filename);
         buildJob.setFileName(filename);
-        Clazz clazz = getClazz(clazzManager, "com.rmbcorp.javawriter.clazz", filename);
+        Clazz clazz = getClazz(clazzManager, jwOptions.get(JWOpts.PACKAGE), filename);
         buildJob.setFileContents(clazzManager.writeOut(clazz));
         return buildJob;
     }
 
     private static String getFilename() {
         String filename;
-        logger.logPlain("name (omit .java please; it will be added)? ");
+        logger.logPlain("filename? (omit .java please; it will be added): ");
         try (BufferedReader bin = new BufferedReader(new InputStreamReader(System.in)) ) {
             filename = bin.readLine();
         } catch (IOException e) {

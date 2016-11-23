@@ -7,7 +7,7 @@ Goals for 0.2-SNAPSHOT:
   3. Separating class bean from class processing
   4. 100% method coverage for tests
 
-Goals for 0.3-SNAPSHOT:
+Goals for 0.3:
   1. Try implementing automated javac for JavaWriter output
   2. Accept command-line parameters.  Minimum scope:
      1. Class name
@@ -17,7 +17,10 @@ Goals for 0.3-SNAPSHOT:
      5. .class javac destination directory
   3. Ability to create if statements and if...else statements
 
-Goals for 0.4-SNAPSHOT:
-  1. Save compilation errors
+Goals for 0.4:
+  1. Handle parametrized types
+  2. Save compilation errors to CSV file
+
+Goals for 0.6 and above might not be disclosed.
 
 EOF

@@ -21,6 +21,13 @@ Goals for 0.4:
   1. Handle parametrized types
   2. Save compilation errors to CSV file
 
+Goals for 0.5
+  1. Refinements needed for robust class building, to include:
+     1. enum creation
+     2. inner/anonymous class creation
+     3. pre-method and inline comments
+  2. Optional: publish the object-oriented version of javawriter
+
 Goals for 0.6 and above might not be disclosed.
 
 EOF

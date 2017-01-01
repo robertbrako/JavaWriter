@@ -4,6 +4,7 @@ import com.rmbcorp.util.StringUtil;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -30,13 +31,14 @@ public class ClazzImplTest {
     public void setUp() throws Exception {
         clazzManager = ClazzImplManager.getInstance();
         clazz = clazzManager.get("com.rmbcorp.javawriter", "ClazzImpl2");
-        setupClass();
+        setupClass(Collections.<Class>singletonList(Clazz.class));
     }
 
-    private void setupClass() {
+    private Clazz setupClass(List<Class> impls) {
         clazz.setClassType(Clazz.ClassType.CLASS);
         clazz.addExtension(Object.class);
-        clazz.addImplementations(Collections.<Class>singletonList(Clazz.class));
+        clazz.addImplementations(impls);
+        return clazz;
     }
 
     @Test
@@ -117,10 +119,8 @@ public class ClazzImplTest {
         assertFalse(testString.equalsIgnoreCase(result));
     }
 
-    @Test public void testParamTest() {
-        Clazz clazz = clazzManager.get("com.rmbcorp.javawriter", CLASS_NAME);
-        clazz.setClassType(Clazz.ClassType.CLASS);
-        clazz.addImplementations(Collections.<Class>singletonList(ParamTest.class));
+    @Test public void testParamSameTypeTest() {
+        setupClass(Collections.<Class>singletonList(ParamTest.class));
         Pattern pattern = Pattern.compile("String setFoo\\((.*)\\)");
         Matcher matcher = pattern.matcher(clazzManager.writeOut(clazz));
         if (matcher.find()) {
@@ -133,17 +133,24 @@ public class ClazzImplTest {
     }
 
     @Test public void returnStringTest() {
-        Clazz clazz = clazzManager.get("", CLASS_NAME);
-        clazz.setClassType(Clazz.ClassType.CLASS);
-        clazz.addImplementations(Collections.<Class>singletonList(ParamTest.class));
-
-        Pattern pattern = Pattern.compile("return.*;");
+        setupClass(new ArrayList<Class>());
+        String expectedString = "return new String";
+        Pattern pattern = Pattern.compile(expectedString);
         Matcher matcher = pattern.matcher(clazzManager.writeOut(clazz));
-        assertTrue(matcher.find() && matcher.group().contains("new String()"));
+        assertTrue(matcher.find() && matcher.group().contains(expectedString));
+    }
+
+    @Test public void insertIfIfBooleanParamTest() {
+        Clazz clazz = setupClass(Collections.<Class>singletonList(ParamTest.class));
+        Pattern pattern = Pattern.compile("if\\s*\\(.*\\)");
+        Matcher matcher = pattern.matcher(clazzManager.writeOut(clazz));
+        assertTrue(matcher.find());
     }
 
     interface ParamTest {
         @SuppressWarnings("unused")
         String setFoo(String bar, String notbar, String reallyNotBar);
+        @SuppressWarnings("unused")
+        void doBar(boolean visible, boolean troubler);
     }
 }

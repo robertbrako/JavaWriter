@@ -24,6 +24,7 @@ final class ClazzImplProcessor {
     private static final char[] TWO_LINES = { '\n', '\n' };
     public static final String VARIABLE_PLACEHOLDER = "//%%VARIABLES%%";
     public static final String IMPORT_PLACEHOLDER = "//%%IMPORTS%%";
+    public static final String EMPTY_BODY = "//empty";
 
     private StringBuilder builder;
     private ValidationManager<ClazzError> validator;
@@ -149,13 +150,12 @@ final class ClazzImplProcessor {
             implementations.add(extension);
         }
         Set<JVariable> allVariables = new HashSet<>();
-        Set<JVariable> variables;
+        Map<JVariable, Boolean> variables;
         Class<?> returnClass;
         List<String> returnTypeAndParams;
-        String returnType, varName;
+        String returnType, varName, methodName, methodParamType;
         for (Class clazz : implementations) {
             Method[] methods = clazz.getDeclaredMethods();
-            String methodName, methodParamType;
             for (Method method : methods) {
                 methodName = method.getName();
                 builder.append(tab(lev)).append("@Override").append(ONE_LINE);
@@ -166,14 +166,16 @@ final class ClazzImplProcessor {
                 builder.append(returnType).append(' ').append(methodName);
                 methodParamType = getParamType(method.toGenericString());
                 variables = getParams(returnTypeAndParams.subList(1, returnTypeAndParams.size()), methodName.startsWith("set"), imports);
-                allVariables.addAll(variables);
+                allVariables.addAll(variables.keySet());
                 builder.append(" {").append(ONE_LINE);
                 lev++;
-                for (JVariable var : variables) {
-                    varName = var.getName();
-                    builder.append(tab(lev)).append("this.").append(varName).append(" = ").append(varName).append(";").append(ONE_LINE);
+                for (Map.Entry<JVariable, Boolean> entry : variables.entrySet()) {
+                    if (entry.getValue()) {
+                        varName = entry.getKey().getName();
+                        builder.append(tab(lev)).append("this.").append(varName).append(" = ").append(varName).append(";").append(ONE_LINE);
+                    }
                 }
-                generateForLoop(method.getParameterTypes(), methodParamType, lev);
+                generateForLoopAndIfStatements(variables, methodParamType, lev);
                 if (!returnType.equals("void")) {
                     builder.append(tab(lev)).append("return ").append(conjureReturnObject(returnClass));
                 }
@@ -262,8 +264,8 @@ final class ClazzImplProcessor {
         return results;
     }
 
-    private Set<JVariable> getParams(List<String> parameterTypes, boolean makeSetter, Set<Class> imports) {
-        Set<JVariable> variables = new HashSet<>();
+    private Map<JVariable, Boolean> getParams(List<String> parameterTypes, boolean makeSetter, Set<Class> imports) {
+        Map<JVariable, Boolean> variables = new HashMap<>();
         builder.append("(");
         String param, simpleName;//param as String was like "java.lang.String" - get this from Class object instead.
         Map<Integer, Integer> paramCounts = new HashMap<>();
@@ -287,9 +289,7 @@ final class ClazzImplProcessor {
             if (i < parameterTypesLength - 1) {
                 builder.append(", ");
             }
-            if (makeSetter) {
-                variables.add(new JVariable(varName, simpleName));
-            }
+            variables.put(new JVariable(varName, simpleName), makeSetter);
             boolean found = false;
             if (!param.equals(simpleName)) {
                 for (Class clazz : imports) {//future: make more efficient
@@ -324,11 +324,11 @@ final class ClazzImplProcessor {
         return JavaKeywords.replaceJavaKeyword(new String(paramCopy));
     }
 
-    private void generateForLoop(Class<?>[] parameterTypes, String methodParamType, int tabLev) {
+    private void generateForLoopAndIfStatements(Map<JVariable, Boolean> variables, String methodParamType, int tabLev) {
         boolean useEmptyBody = true;
         String iterable;
-        for (Class<?> parameterType : parameterTypes) {
-            iterable = parameterType.getSimpleName();
+        for (JVariable jVariable : variables.keySet()) {
+            iterable = jVariable.getType();
             if (!"".equals(methodParamType) && Iterables.contains(iterable) && !methodParamType.startsWith("?")) {//todo deal with ?
                 useEmptyBody = false;
                 builder.append(tab(tabLev)).append("for (")
@@ -336,12 +336,15 @@ final class ClazzImplProcessor {
                         .append(" : ")
                         .append(iterable.toLowerCase())
                         .append(") {").append(ONE_LINE);
-                builder.append(tab(tabLev+1)).append("//empty").append(ONE_LINE);
+                builder.append(tab(tabLev+1)).append(EMPTY_BODY).append(ONE_LINE);
                 builder.append(tab(tabLev)).append("}").append(ONE_LINE);
+            } else if (iterable.equalsIgnoreCase("boolean")) {
+                String param = jVariable.getName();
+                generateIfStatement(2, param, EMPTY_BODY); //caution, multiple boolean params will cause problem; hard-coded tab-lev
             }
         }
         if (useEmptyBody) {
-            builder.append(tab(tabLev)).append("//empty").append(ONE_LINE);
+            builder.append(tab(tabLev)).append(EMPTY_BODY).append(ONE_LINE);
         }
     }
 
@@ -363,6 +366,16 @@ final class ClazzImplProcessor {
             newLine += (tab(tabLevel) + variable.writeOut() + ";\n");
         }
         builder.replace(lineBegin, lineEnd, newLine);
+    }
+
+    private void generateIfStatement(int tabLev, String statement, String body) {
+        builder.append(tab(tabLev)).append("if (")
+                .append(StringUtil.isEmpty(statement) ? "true" : statement)
+                .append(") {")
+                .append(ONE_LINE)
+                .append(tab(tabLev+1)).append(body)
+                .append(ONE_LINE)
+                .append(tab(tabLev)).append("}").append(ONE_LINE);
     }
 
     private void closeBody() {

@@ -22,6 +22,10 @@ class JVariable {
         return varName;
     }
 
+    String getType() {
+        return classType;
+    }
+
     @Override
     public boolean equals(Object obj) {
         return obj instanceof JVariable && varName.equals(((JVariable) obj).getName());

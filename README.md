@@ -15,7 +15,7 @@ Goals for 0.3:
      3. Visibility
      4. .java source destination directory
      5. .class javac destination directory
-  3. Ability to create if statements and if...else statements
+  3. Ability to create if statements
 
 Goals for 0.4:
   1. Handle parametrized types

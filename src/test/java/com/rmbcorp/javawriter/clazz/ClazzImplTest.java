@@ -44,7 +44,6 @@ public class ClazzImplTest {
     @Test
     public void cannotHaveEmptyNameTest() {
         Clazz nameless = clazzManager.get("com.rmbcorp.javawriter", "");
-        nameless.setClassType(Clazz.ClassType.CLASS);
         String output = clazzManager.writeOut(nameless);
         assertTrue("".equals(output));
         assertTrue(clazzManager.hasError(CANNOT_HAVE_EMPTY_CLASS_NAME));
@@ -76,7 +75,6 @@ public class ClazzImplTest {
     @Test
     public void packageNameNotCurrentlyRequiredTest() {
         Clazz packageless = clazzManager.get("", CLASS_NAME);
-        packageless.setClassType(Clazz.ClassType.CLASS);
         String output = clazzManager.writeOut(packageless);
         assertTrue(StringUtil.containsAll(output.split("\\s"), new String[]{ "class", CLASS_NAME, "}" }));
     }

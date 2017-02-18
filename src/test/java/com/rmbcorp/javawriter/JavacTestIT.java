@@ -82,7 +82,7 @@ public class JavacTestIT {
         Clazz clazz = setupClass(clazzImplManager.get("", FILE_NAME));
         BuildJob buildJob = new JavacJob(FILE_NAME, RELATIVE_PATH);
         buildJob.setBinPath(BIN_PATH);
-        buildJob.setClassPath("\"" + System.getenv().get("USERPROFILE").replace("Aspire", "root") + "\\IdeaProjects\\JavaWriter\\target\\classes" + "\"");
+        buildJob.setClassPath("\"" + System.getenv().get("PWD") + "\\target\\classes" + "\"");
         buildJob.setFileContents(clazzImplManager.writeOut(clazz));
         compile(buildJob);
 
@@ -93,7 +93,6 @@ public class JavacTestIT {
 
     private Clazz setupClass(Clazz clazz) {
         clazz.addImplementations(Collections.<Class>singletonList(List.class));
-        clazz.setClassType(Clazz.ClassType.CLASS);//todo: need to make this required for construction
         return clazz;
     }
 

@@ -21,8 +21,13 @@ class ClazzImpl implements Clazz {
 
 
     ClazzImpl(String packagePath, String className) {
+        this(packagePath, className, ClassType.CLASS);
+    }
+
+    ClazzImpl(String packagePath, String className, ClassType classType) {
         this.packagePath = packagePath;
         this.className = className;
+        this.classType = classType;
     }
 
     @Override

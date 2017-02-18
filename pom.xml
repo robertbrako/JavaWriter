@@ -9,8 +9,12 @@
     <version>0.3</version>
 
     <properties>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven-deploy-plugin.version>2.7</maven-deploy-plugin.version>
+        <nexus.url>http://192.168.1.190</nexus.url>
+        <nexus.port>8081</nexus.port>
+        <nexus-staging-maven-plugin.version>1.6.7</nexus-staging-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -29,8 +33,8 @@
 
     <repositories>
         <repository>
-            <id>rmbCentral</id>
-            <url>file://C:\Users\root\.m2\repository</url>
+            <id>rmbCentralSnapshots</id>
+            <url>${nexus.url}:${nexus.port}/repository/maven-snapshots</url>
         </repository>
     </repositories>
     <build>
@@ -39,11 +43,50 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>${maven-deploy-plugin.version}</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>${nexus-staging-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>default-deploy</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>deploy</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <serverId>nexus</serverId>
+                    <nexusUrl>${nexus.url}:${nexus.port}/nexus/</nexusUrl>
+                    <skipStaging>true</skipStaging><!-- pay attention to this -->
                 </configuration>
             </plugin>
         </plugins>
     </build>
+    <distributionManagement>
+        <snapshotRepository>
+            <id>nexus</id>
+            <name>nexus-snapshots</name>
+            <url>${nexus.url}:${nexus.port}/repository/maven-snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>nexus</id>
+            <name>nexus-releases</name>
+            <url>${nexus.url}:${nexus.port}/repository/maven-releases</url>
+        </repository>
+    </distributionManagement>
 
 </project>

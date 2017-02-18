@@ -237,7 +237,7 @@ final class ClazzImplProcessor {
         List<String> results = new ArrayList<>();
         String[] contents = method.toString().split(" ");
         int startIndex = 1; //refine...not sure about when we're extending concrete classes...
-        for (String modifier : Arrays.asList("abstract", "final", "native", "static")) {
+        for (String modifier : Arrays.asList("abstract", "final", "native", "static", "default")) {
             for (String item : contents) {
                 if (modifier.equalsIgnoreCase(item)) {
                     startIndex++;

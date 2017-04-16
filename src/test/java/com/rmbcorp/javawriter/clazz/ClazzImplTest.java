@@ -117,6 +117,21 @@ public class ClazzImplTest {
         assertFalse(testString.equalsIgnoreCase(result));
     }
 
+    @Test
+    public void fieldNameValidationTest() {
+        setupClass(Collections.<Class>singletonList(Clazz.class));
+        String output = clazzManager.writeOut(clazz);
+        assertFalse(output.contains("private Class class"));
+        assertTrue(output.contains("private Class clazz"));
+    }
+
+    @Test
+    public void forLoopGenerationTest() {
+        setupClass(Collections.<Class>singletonList(Clazz.class));
+        String output = clazzManager.writeOut(clazz);
+        assertTrue(output.contains("for (Class clazz : list)"));
+    }
+
     @Test public void testParamSameTypeTest() {
         setupClass(Collections.<Class>singletonList(ParamTest.class));
         Pattern pattern = Pattern.compile("String setFoo\\((.*)\\)");

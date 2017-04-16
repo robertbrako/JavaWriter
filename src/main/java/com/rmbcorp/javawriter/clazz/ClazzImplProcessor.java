@@ -299,7 +299,7 @@ final class ClazzImplProcessor {
                 }
                 if (!found) {
                     try {
-                        imports.add(Class.forName(param));
+                        imports.add(Class.forName(cleanParamString(param)));
                     } catch (ClassNotFoundException ignored) {
                         //figure out what to report
                     }
@@ -319,16 +319,16 @@ final class ClazzImplProcessor {
     }
 
     private String getVarName(String param) {
-        char[] paramCopy = param.toCharArray();
+        char[] paramCopy = JavaKeywords.replaceJavaKeyword(param).toCharArray();
         paramCopy[0] = Character.toLowerCase(paramCopy[0]);
-        return JavaKeywords.replaceJavaKeyword(new String(paramCopy));
+        return new String(paramCopy);
     }
 
     private void generateForLoopAndIfStatements(Map<JVariable, Boolean> variables, String methodParamType, int tabLev) {
         boolean useEmptyBody = true;
         String iterable;
         for (JVariable jVariable : variables.keySet()) {
-            iterable = jVariable.getType();
+            iterable = cleanParamString(jVariable.getType());
             if (!"".equals(methodParamType) && Iterables.contains(iterable) && !methodParamType.startsWith("?")) {//todo deal with ?
                 useEmptyBody = false;
                 builder.append(tab(tabLev)).append("for (")

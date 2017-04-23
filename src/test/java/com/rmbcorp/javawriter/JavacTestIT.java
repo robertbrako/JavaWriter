@@ -2,6 +2,7 @@ package com.rmbcorp.javawriter;
 
 import com.rmbcorp.javawriter.autojavac.AutoJavacException;
 import com.rmbcorp.javawriter.autojavac.JavaCompiler;
+import com.rmbcorp.javawriter.autojavac.JavacParams;
 import com.rmbcorp.javawriter.clazz.Clazz;
 import com.rmbcorp.javawriter.clazz.ClazzImplManager;
 import com.rmbcorp.javawriter.logman.LoggerManager;
@@ -45,7 +46,7 @@ public class JavacTestIT {
         try {
             javaCompiler.compile(buildJob);
         } catch (AutoJavacException e) {
-            e.printStackTrace();
+            logger.logError(e.getStackTrace());
             fail();
         }
     }
@@ -74,6 +75,23 @@ public class JavacTestIT {
         assertFalse(testFile.exists());
         compile(new JavacJob(FILE_NAME, RELATIVE_PATH + SL));
         assertTrue(testFile.exists()); //compare against same testFile obj even though this time we appended / to path
+    }
+
+    @Test public void justCompileWithoutCreatingNewSourceFile() {
+        String pathname = "src/test/resources/";
+        String fileName = "SampleFile";
+        testFile = new File(BIN_PATH + SL + fileName + ".class");
+        assertFalse(testFile.exists());
+        try {
+            javaCompiler.setParams(JavacParams.NO_CREATE_SRC_FILES);
+            JavacJob javacJob = new JavacJob(fileName, pathname);
+            javacJob.setBinPath(BIN_PATH);
+            javaCompiler.compile(javacJob);
+        } catch (AutoJavacException e) {
+            logger.logError(e.getStackTrace());
+            fail();
+        }
+        assertTrue(testFile.exists());
     }
 
     @Test public void fullCompileTest() {

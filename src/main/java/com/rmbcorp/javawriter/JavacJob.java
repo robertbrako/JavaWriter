@@ -17,6 +17,7 @@ package com.rmbcorp.javawriter;
 
 class JavacJob implements BuildJob {
     private String fileName;
+    private String packageName = "";
     private String relativePath;
     private String fileContents = "";
     private String classPath = "";
@@ -35,6 +36,16 @@ class JavacJob implements BuildJob {
     @Override
     public void setFileName(String fileName) {
         this.fileName = fileName;
+    }
+
+    @Override
+    public String getPackageName() {
+        return packageName;
+    }
+
+    @Override
+    public void setPackageName(String packageName) {
+        this.packageName = packageName;
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
-* Copyright 2016 by Robert M. Brako,
+* Copyright 2017 by Robert M. Brako,
 * All rights reserved.
 *
 * Permission is not granted to any person or entity to obtain a copy of this software and associated files
@@ -15,14 +15,6 @@
 */
 package com.rmbcorp.javawriter.autojavac;
 
-import com.rmbcorp.javawriter.BuildJob;
-
-public interface Compiler {
-
-    String GEN_FOLDER = "src/gen/";
-    String BIN_FOLDER = "bin/";
-
-    void compile(BuildJob buildJob) throws AutoJavacException;
-
-    void setParams(JavacParams... params);
+public enum  JavacParams {
+    NO_CREATE_SRC_FILES
 }

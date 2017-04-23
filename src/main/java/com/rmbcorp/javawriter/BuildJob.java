@@ -9,6 +9,10 @@ public interface BuildJob {
 
     void setFileName(String fileName);
 
+    String getPackageName();
+
+    void setPackageName(String packageName);
+
     String getRelativePath();
 
     String getFileContents();

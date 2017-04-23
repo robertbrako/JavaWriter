@@ -20,13 +20,18 @@ import com.rmbcorp.javawriter.logman.TempLogger;
 import com.rmbcorp.util.StringUtil;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class JavaCompiler implements Compiler {
 
     private final TempLogger logger;
+    private List<JavacParams> javacParams;
 
     public JavaCompiler(TempLogger logger) {
         this.logger = logger;
+        javacParams = new ArrayList<>();
     }
 
     @Override
@@ -50,10 +55,12 @@ public class JavaCompiler implements Compiler {
     }
 
     private void createFile(BuildJob javacJob) throws IOException {
-        File f = new File(getValidPath(javacJob.getRelativePath()) + javacJob.getFileName() + ".java");
-        FileOutputStream fos = new FileOutputStream(f);
-        fos.write(javacJob.getFileContents().getBytes());
-        fos.close();
+        if (!javacParams.contains(JavacParams.NO_CREATE_SRC_FILES)) {
+            File f = new File(getValidPath(javacJob.getRelativePath()) + javacJob.getFileName() + ".java");
+            FileOutputStream fos = new FileOutputStream(f);
+            fos.write(javacJob.getFileContents().getBytes());
+            fos.close();
+        }
     }
 
     private String getValidPath(String relativePath) {
@@ -89,5 +96,10 @@ public class JavaCompiler implements Compiler {
 
     private String getValidCmdArg(String arg, String classPath) {
         return StringUtil.isEmpty(classPath) ? "" : arg + classPath;
+    }
+
+    @Override
+    public void setParams(JavacParams... javacParams) {
+        Collections.addAll(this.javacParams, javacParams);
     }
 }

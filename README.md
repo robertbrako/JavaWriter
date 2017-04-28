@@ -1,5 +1,8 @@
 # com.rmbcorp.javawriter.JavaWriter
-Hint at some things I'm up to
+
+[![Build Status](https://travis-ci.org/robertbrako/JavaWriter.svg?branch=master)](https://travis-ci.org/robertbrako/JavaWriter)
+<br>
+Utility to dynamically write and compile java code.
 
 Goals for 0.2-SNAPSHOT:
   1. Validation backed by Unit Tests

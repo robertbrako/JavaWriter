@@ -15,6 +15,7 @@
         <nexus.url>http://192.168.1.190</nexus.url>
         <nexus.port>8081</nexus.port>
         <nexus-staging-maven-plugin.version>1.6.7</nexus-staging-maven-plugin.version>
+        <libdir>${project.basedir}/lib</libdir>
     </properties>
 
     <dependencies>
@@ -22,6 +23,9 @@
             <groupId>com.rmbcorp</groupId>
             <artifactId>util</artifactId>
             <version>0.1-SNAPSHOT</version>
+            <!-- workaround for JavaWriter outside of private infrastructure -->
+            <scope>system</scope>
+            <systemPath>${libdir}/util-0.1-SNAPSHOT.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

@@ -1,6 +1,7 @@
 package com.rmbcorp.javawriter;
 
-import com.rmbcorp.argparser.ArgParser;
+import com.rmbcorp.util.argparser.ArgParser;
+import com.rmbcorp.util.argparser.ParserProv;
 import com.rmbcorp.javawriter.autojavac.AutoJavacException;
 import com.rmbcorp.javawriter.autojavac.Compiler;
 import com.rmbcorp.javawriter.autojavac.JavaCompiler;
@@ -51,7 +52,7 @@ class JavaWriter {
     private static boolean useSout;
 
     public static void main(String[] args) {
-        argParser = ArgParser.Provider.getDefault();
+        argParser = new ParserProv().getDefault();
         Map<JWOpts, String> jwOptions = argParser.getArgs(args, "-", JWOpts.class);
         Map<JavacOpts, String> javacOptsMap = argParser.getArgs(args, "-", JavacOpts.class);
         debugEnv = Boolean.parseBoolean(jwOptions.get(JWOpts.DEBUGENV));

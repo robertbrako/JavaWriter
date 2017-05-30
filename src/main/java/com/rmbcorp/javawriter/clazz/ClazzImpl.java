@@ -18,6 +18,7 @@ class ClazzImpl implements Clazz {
     private final String className;
     private Class extension;
     private final Set<Class> implementations = new HashSet<>();
+    private final Set<JMethod> methods = new HashSet<>();
 
 
     ClazzImpl(String packagePath, String className) {
@@ -65,6 +66,10 @@ class ClazzImpl implements Clazz {
         this.implementations.addAll(implementations);
     }
 
+    @Override
+    public void addMethod(JMethod jMethod) {
+        methods.add(jMethod);
+    }
 
     String getPackagePath() {
         return packagePath;
@@ -100,5 +105,9 @@ class ClazzImpl implements Clazz {
     
     Set<Class> getImplementations() {
         return implementations;
+    }
+
+    Set<JMethod> getMethods() {
+        return methods;
     }
 }

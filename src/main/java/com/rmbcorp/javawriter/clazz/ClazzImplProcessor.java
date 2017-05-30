@@ -37,7 +37,7 @@ final class ClazzImplProcessor {
         builder = new StringBuilder("");
         setupImports(clazz.getImports(), clazz.getExtension(), clazz.getImplementations());
         buildClassOrInterface(clazz.getClassType(), clazz);
-        buildBody(clazz.getExtension(), clazz.getImplementations(), clazz.getImports());
+        buildBody(clazz.getExtension(), clazz.getImplementations(), clazz.getImports(), clazz.getMethods());
         closeBody();
         buildImports(clazz.getImports());
         buildPackage(clazz.getPackagePath());
@@ -99,7 +99,7 @@ final class ClazzImplProcessor {
 
     private void buildClass(String className, Clazz.Visibility visibility, boolean isFinal, boolean isAbstract, Class extension) {
         if (!(isFinal && isAbstract)) {
-            builder.append(visibility.toString());
+            builder.append(visibility.toString()).append(' ');
             builder.append(isFinal ? "final " : isAbstract ? "abstract " : "");
             builder.append("class ").append(className);
             if (extension != null) {
@@ -143,56 +143,65 @@ final class ClazzImplProcessor {
         return object.substring(begin).replaceAll(";", "");
     }
 
-    private void buildBody(Class extension, Set<Class> implementations, Set<Class> imports) {
+    private void buildBody(Class extension, Set<Class> implementations, Set<Class> imports, Set<JMethod> jMethods) {
         int lev = 1;
         builder.append(VARIABLE_PLACEHOLDER).append(ONE_LINE);
         if (extension != null) {
             implementations.add(extension);
         }
         Set<JVariable> allVariables = new HashSet<>();
-        Map<JVariable, Boolean> variables;
-        Class<?> returnClass;
-        List<String> returnTypeAndParams;
-        String returnType, varName, methodName, methodParamType;
         for (Class clazz : implementations) {
-            Method[] methods = clazz.getDeclaredMethods();
-            for (Method method : methods) {
-                methodName = method.getName();
-                builder.append(tab(lev)).append("@Override").append(ONE_LINE);
-                returnClass = method.getReturnType();
-                builder.append(tab(lev)).append(getScope(method.getModifiers()));
-                returnTypeAndParams = getReturnTypeAndParams(method);
-                returnType = returnTypeAndParams.get(0);
-                builder.append(returnType).append(' ').append(methodName);
-                methodParamType = getParamType(method.toGenericString());
-                variables = getParams(returnTypeAndParams.subList(1, returnTypeAndParams.size()), methodName.startsWith("set"), imports);
-                allVariables.addAll(variables.keySet());
-                builder.append(" {").append(ONE_LINE);
-                lev++;
-                for (Map.Entry<JVariable, Boolean> entry : variables.entrySet()) {
-                    if (entry.getValue()) {
-                        varName = entry.getKey().getName();
-                        builder.append(tab(lev)).append("this.").append(varName).append(" = ").append(varName).append(";").append(ONE_LINE);
-                    }
-                }
-                generateForLoopAndIfStatements(variables, methodParamType, lev);
-                if (!returnType.equals("void")) {
-                    builder.append(tab(lev)).append("return ").append(conjureReturnObject(returnClass));
-                }
-                imports.add(returnClass);
-                lev--;
-                builder.append(tab(lev)).append("}").append(TWO_LINES);
+            for (Method method : clazz.getDeclaredMethods()) {
+                processMethods(imports, lev, allVariables, new JMethod(method));
             }
+        }
+        for (JMethod jMethod : jMethods) {
+            processMethods(imports, lev, allVariables, jMethod);
         }
         implementations.remove(extension);
         buildVariables(allVariables, lev);
+    }
+
+    private void processMethods(Set<Class> imports, int lev, Set<JVariable> allVariables, JMethod jMethod) {
+        Class<?> returnClass = jMethod.getReturnType();
+        List<String> returnTypeAndParams;
+        String returnType, varName, methodName, methodParamType;
+        Map<JVariable, Boolean> variables;
+        methodName = jMethod.getName();
+
+        if (jMethod.isOverride()) {
+            builder.append(tab(lev)).append("@Override").append(ONE_LINE);
+        }
+        builder.append(tab(lev)).append(getScope(jMethod.getModifier()));
+        returnTypeAndParams = getReturnTypeAndParams(jMethod);
+        returnType = returnTypeAndParams.get(0);
+        if (returnType.equals("Void")) returnType = "void";
+        builder.append(returnType).append(' ').append(methodName);
+        methodParamType = getParamType(jMethod.toGenericString());
+        variables = getParams(returnTypeAndParams.subList(1, returnTypeAndParams.size()), methodName.startsWith("set"), imports);
+        allVariables.addAll(variables.keySet());
+        builder.append(" {").append(ONE_LINE);
+        lev++;
+        for (Map.Entry<JVariable, Boolean> entry : variables.entrySet()) {
+            if (entry.getValue()) {
+                varName = entry.getKey().getName();
+                builder.append(tab(lev)).append("this.").append(varName).append(" = ").append(varName).append(";").append(ONE_LINE);
+            }
+        }
+        generateForLoopAndIfStatements(variables, methodParamType, lev);
+        if (!returnType.equalsIgnoreCase("void")) {
+            builder.append(tab(lev)).append("return ").append(conjureReturnObject(returnClass));
+        }
+        imports.add(returnClass);
+        lev--;
+        builder.append(tab(lev)).append("}").append(TWO_LINES);
     }
 
     private String conjureReturnObject(Class<?> returnClass) {
         String returnText = "null;";
         String simpleName = returnClass.getSimpleName();
         if (returnClass.isPrimitive()) {
-            if ("int".equals(simpleName)) {
+            if (Arrays.asList("int", "long", "short", "float", "double", "byte").contains(simpleName)) {
                 returnText = "0;";
             }
             if ("boolean".equals(simpleName)) {
@@ -233,10 +242,10 @@ final class ClazzImplProcessor {
         return scope;
     }
 
-    private List<String> getReturnTypeAndParams(Method method) {//needs more testing in different scenarios
+    private List<String> getReturnTypeAndParams(JMethod method) {
         List<String> results = new ArrayList<>();
         String[] contents = method.toString().split(" ");
-        int startIndex = 1; //refine...not sure about when we're extending concrete classes...
+        int startIndex = 1;
         for (String modifier : Arrays.asList("abstract", "final", "native", "static", "default")) {
             for (String item : contents) {
                 if (modifier.equalsIgnoreCase(item)) {

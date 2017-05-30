@@ -6,7 +6,7 @@ package com.rmbcorp.javawriter.clazz;
 enum JavaKeywords {
     BOOL("boolean", "bool"), CHAR("char", "ch"), INT("int", "i"), LONG("long", "l"), FLOAT("float", "f"),
     DOUBLE("double", "d"), CLASS("Class", "clazz"), ENUM("enum", "en"), BOOLEAN("Boolean", "bool"), SHORT("short", "srt"),
-    FALSE("false", "fal"), TRUE("true", "tru"), NULL("null", "nul");
+    FALSE("false", "fal"), TRUE("true", "tru"), NULL("null", "nul"), BYTE("byte", "bt");
 
     private final String keyword;
     private final String replacement;
@@ -47,7 +47,7 @@ enum JavaKeywords {
 }
 
 enum JavaKeywordsExtended {
-    ABSTRACT("abstr"), ASSERT("assrt"), BREAK("brk"), BYTE("bt"),
+    ABSTRACT("abstr"), ASSERT("assrt"), BREAK("brk"),
     CASE("cas"), CATCH("cat"), CONST("constant"), CONTINUE("contin"),
     DEFAULT("def"), DO("d"), ELSE("els"), ENUM("enm"), EXTENDS("xtends"),
     FINAL("fin"), FINALLY("fnlly"), FOR("fr"), GOTO("gto"), IF("iF"),

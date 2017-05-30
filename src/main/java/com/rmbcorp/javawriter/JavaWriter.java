@@ -12,6 +12,7 @@ import com.rmbcorp.javawriter.logman.LoggerManager;
 import com.rmbcorp.javawriter.logman.TempLogger;
 
 import java.io.BufferedReader;
+import java.io.DataInput;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;

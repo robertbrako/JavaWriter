@@ -15,7 +15,7 @@ class JVariable {
     }
 
     String writeOut() {
-        return visibility + classType + " " + varName;
+        return visibility + " " + classType + " " + varName;
     }
 
     String getName() {

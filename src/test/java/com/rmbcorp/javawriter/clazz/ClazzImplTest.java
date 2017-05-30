@@ -4,6 +4,8 @@ import com.rmbcorp.util.StringUtil;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.DataInput;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,13 +26,14 @@ public class ClazzImplTest {
     public static final Class<Integer> INTEGER_CLASS = Integer.class;
     public static final Class<String> STRING_CLASS = String.class;
     public static final String CLASS_NAME = "ArbitraryName";
+    public static final String COM_RMBCORP_JAVAWRITER = "com.rmbcorp.javawriter";
     ClazzImplManager clazzManager;
     Clazz clazz;
 
     @Before
     public void setUp() throws Exception {
         clazzManager = ClazzImplManager.getInstance();
-        clazz = clazzManager.get("com.rmbcorp.javawriter", "ClazzImpl2");
+        clazz = clazzManager.get(COM_RMBCORP_JAVAWRITER, "ClazzImpl2");
         setupClass(Collections.<Class>singletonList(Clazz.class));
     }
 
@@ -43,7 +46,7 @@ public class ClazzImplTest {
 
     @Test
     public void cannotHaveEmptyNameTest() {
-        Clazz nameless = clazzManager.get("com.rmbcorp.javawriter", "");
+        Clazz nameless = clazzManager.get(COM_RMBCORP_JAVAWRITER, "");
         String output = clazzManager.writeOut(nameless);
         assertTrue("".equals(output));
         assertTrue(clazzManager.hasError(CANNOT_HAVE_EMPTY_CLASS_NAME));
@@ -132,6 +135,22 @@ public class ClazzImplTest {
         assertTrue(output.contains("for (Class clazz : list)"));
     }
 
+    @Test
+    public void addCustomMethodTest() throws NoSuchMethodException {
+        Clazz withMethod = clazzManager.get(COM_RMBCORP_JAVAWRITER, CLASS_NAME);
+        withMethod.addMethod(new JMethod("setDestroyWorlds", Boolean.class, Clazz.Visibility.PUBLIC,
+                COM_RMBCORP_JAVAWRITER, Arrays.asList(String.class, Integer.class)));
+        withMethod.addMethod(new JMethod("isDestroyWorlds", Void.class, Clazz.Visibility.PUBLIC,
+                COM_RMBCORP_JAVAWRITER, Arrays.asList(String.class, Integer.class)));
+        String output = clazzManager.writeOut(withMethod);
+        Pattern pattern = Pattern.compile("public [Bb]oolean setDestroyWorlds\\(String.*Integer.*\\)");
+        Matcher matcher = pattern.matcher(output);
+        assertTrue(matcher.find());
+        pattern = Pattern.compile("public [Vv]oid isDestroyWorlds\\(String.*Integer.*\\)");
+        matcher = pattern.matcher(output);
+        assertTrue(matcher.find());
+    }
+
     @Test public void testParamSameTypeTest() {
         setupClass(Collections.<Class>singletonList(ParamTest.class));
         Pattern pattern = Pattern.compile("String setFoo\\((.*)\\)");
@@ -146,7 +165,7 @@ public class ClazzImplTest {
     }
 
     @Test public void returnStringTest() {
-        setupClass(new ArrayList<Class>());
+        setupClass(new ArrayList<>());
         String expectedString = "return new String";
         Pattern pattern = Pattern.compile(expectedString);
         Matcher matcher = pattern.matcher(clazzManager.writeOut(clazz));
@@ -158,6 +177,13 @@ public class ClazzImplTest {
         Pattern pattern = Pattern.compile("if\\s*\\(.*\\)");
         Matcher matcher = pattern.matcher(clazzManager.writeOut(clazz));
         assertTrue(matcher.find());
+    }
+
+    @Test public void bytePrimitiveIsNotImportedTest() {
+        Clazz clazz = setupClass(Collections.<Class>singletonList(DataInput.class));
+        String output = clazzManager.writeOut(clazz);
+        assertFalse(output.contains("import byte"));
+        assertFalse(output.contains("byte[] byte"));
     }
 
     interface ParamTest {

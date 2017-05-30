@@ -7,11 +7,21 @@ import java.util.List;
  */
 public interface Clazz {
     enum Visibility {
-        PUBLIC, PRIVATE, PACKAGE;
+        PUBLIC(1), PRIVATE(2), PACKAGE(0);
+
+        private final int modifier;
+
+        Visibility(int modifier) {
+            this.modifier = modifier;
+        }
 
         @Override
         public String toString() {
-            return PACKAGE.equals(this) ? "" : name().toLowerCase().concat(" ");
+            return PACKAGE.equals(this) ? "" : name().toLowerCase();
+        }
+
+        int getModifier() {
+            return modifier;
         }
     }
     enum ClassType { CLASS, INTERFACE }
@@ -23,5 +33,5 @@ public interface Clazz {
     void setClassType(ClassType classType);
     void addExtension(Class extension);
     void addImplementations(List<Class> implementation);
-
+    void addMethod(JMethod jMethod);
 }

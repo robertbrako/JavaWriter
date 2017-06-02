@@ -3,26 +3,26 @@ package com.rmbcorp.javawriter.clazz;
 /**JVariable
  * Created by rmbdev on 10/2/2016.
  */
-class JVariable {
+public class JVariable {
     private String varName;
     private Clazz.Visibility visibility;
     private String classType;
 
-    JVariable(String varName, String classType) {
+    public JVariable(String varName, String classType) {
         visibility = Clazz.Visibility.PRIVATE;
         this.varName = varName;
         this.classType = classType;
     }
 
-    String writeOut() {
+    public String writeOut() {
         return visibility + " " + classType + " " + varName;
     }
 
-    String getName() {
+    public String getName() {
         return varName;
     }
 
-    String getType() {
+    public String getType() {
         return classType;
     }
 

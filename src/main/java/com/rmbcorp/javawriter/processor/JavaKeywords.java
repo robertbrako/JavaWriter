@@ -1,4 +1,4 @@
-package com.rmbcorp.javawriter.clazz;
+package com.rmbcorp.javawriter.processor;
 
 /**JavaKeywords
  * Created by rmbdev on 10/1/2016.

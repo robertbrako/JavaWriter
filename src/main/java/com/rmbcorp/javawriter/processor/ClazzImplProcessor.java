@@ -1,5 +1,9 @@
-package com.rmbcorp.javawriter.clazz;
+package com.rmbcorp.javawriter.processor;
 
+import com.rmbcorp.javawriter.clazz.Clazz;
+import com.rmbcorp.javawriter.clazz.ClazzReadable;
+import com.rmbcorp.javawriter.clazz.JMethod;
+import com.rmbcorp.javawriter.clazz.JVariable;
 import com.rmbcorp.util.StringUtil;
 import com.rmbcorp.util.ValidationManager;
 
@@ -18,7 +22,7 @@ import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError;
 /**ClazzImplProcessor
  * Created by rmbdev on 10/1/2016.
  */
-final class ClazzImplProcessor {
+final class ClazzImplProcessor implements ClazzProcessor {
 
     private static final char ONE_LINE = '\n';
     private static final char[] TWO_LINES = { '\n', '\n' };
@@ -28,12 +32,32 @@ final class ClazzImplProcessor {
 
     private StringBuilder builder;
     private ValidationManager<ClazzError> validator;
+    private String errorCache;
     
     ClazzImplProcessor(ValidationManager<ClazzError> validator) {
         this.validator = validator;
     }
 
-    String writeOut(ClazzImpl clazz) {
+    @Override
+    public boolean hasError(ClazzError error) {
+        return errorCache.contains(error.name());
+    }
+
+    @Override
+    public String writeOut(Clazz clazz) {
+        errorCache = "";
+        if (clazz instanceof ClazzReadable) {
+            String out = writeOut((ClazzReadable) clazz);
+            if (validator.hasErrors()) {
+                errorCache = ((ClazzValidator)validator).getErrorsAsCSV();
+                validator.removeAllResults();
+            }
+            return out;
+        }
+        else return "";
+    }
+
+    String writeOut(ClazzReadable clazz) {
         builder = new StringBuilder("");
         setupImports(clazz.getImports(), clazz.getExtension(), clazz.getImplementations());
         buildClassOrInterface(clazz.getClassType(), clazz);
@@ -78,7 +102,7 @@ final class ClazzImplProcessor {
         return object.toString().replaceFirst("class ", "").replaceFirst("interface ", "");
     }
 
-    private void buildClassOrInterface(Clazz.ClassType classType, ClazzImpl clazz) {
+    private void buildClassOrInterface(Clazz.ClassType classType, ClazzReadable clazz) {
         String className = clazz.getClassName();
         if (StringUtil.isEmpty(className)) {
             validator.addResult(ClazzError.CANNOT_HAVE_EMPTY_CLASS_NAME);
@@ -389,26 +413,6 @@ final class ClazzImplProcessor {
 
     private void closeBody() {
         builder.append('}').append(ONE_LINE);
-    }
-
-    private enum Iterables {
-
-        COLLECTION("Collection"), LIST("List"), SET("Set");
-
-        private final String refName;
-
-        Iterables(String refName) {
-            this.refName = refName;
-        }
-
-        static boolean contains(String className) {
-            for (Iterables it : values()) {
-                if (it.refName.equals(className)) {
-                    return true;
-                }
-            }
-           return false;
-        }
     }
 
 }

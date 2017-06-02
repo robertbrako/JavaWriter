@@ -7,7 +7,7 @@ import java.util.Set;
 /**Homebrew wrapper for classes
  * Created by rmbdev on 8/11/2016.
  */
-class ClazzImpl implements Clazz {
+class ClazzImpl implements Clazz, ClazzReadable {
 
     private final String packagePath;
     private final Set<Class> imports = new HashSet<>();
@@ -71,43 +71,55 @@ class ClazzImpl implements Clazz {
         methods.add(jMethod);
     }
 
-    String getPackagePath() {
+
+
+    @Override
+    public String getPackagePath() {
         return packagePath;
     }
     
-    Set<Class> getImports() {
+    @Override
+    public Set<Class> getImports() {
         return imports;
     }
     
-    Visibility getVisibility() {
+    @Override
+    public Visibility getVisibility() {
         return visibility;
     }
     
-    boolean isFinal() {
+    @Override
+    public boolean isFinal() {
         return isFinal;
     }
     
-    boolean isAbstract() {
+    @Override
+    public boolean isAbstract() {
         return isAbstract;
     }
     
-    ClassType getClassType() {
+    @Override
+    public ClassType getClassType() {
         return classType;
     }
     
-    String getClassName() {
+    @Override
+    public String getClassName() {
         return className;
     }
     
-    Class getExtension() {
+    @Override
+    public Class getExtension() {
         return extension;
     }
     
-    Set<Class> getImplementations() {
+    @Override
+    public Set<Class> getImplementations() {
         return implementations;
     }
 
-    Set<JMethod> getMethods() {
+    @Override
+    public Set<JMethod> getMethods() {
         return methods;
     }
 }

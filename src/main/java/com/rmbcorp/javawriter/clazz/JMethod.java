@@ -15,6 +15,8 @@
 */
 package com.rmbcorp.javawriter.clazz;
 
+import com.rmbcorp.javawriter.clazz.Clazz;
+
 import java.lang.reflect.Method;
 import java.util.List;
 
@@ -48,28 +50,28 @@ public class JMethod {
         return result;
     }
 
-    String getName() {
+    public String getName() {
         return method != null ? method.getName() : name;
     }
 
-    Class<?> getReturnType() {
+    public Class<?> getReturnType() {
         return method != null ? method.getReturnType() : returnType;
     }
 
-    int getModifier() {
+    public int getModifier() {
         return method != null ? method.getModifiers() : modifier;
     }
 
-    String toGenericString() {
+    public String toGenericString() {
         return method != null ? method.toGenericString() : asGenericString;
+    }
+
+    public boolean isOverride() {
+        return method != null;
     }
 
     @Override
     public String toString() {
         return method != null ? method.toString() : asGenericString;
-    }
-
-    boolean isOverride() {
-        return method != null;
     }
 }

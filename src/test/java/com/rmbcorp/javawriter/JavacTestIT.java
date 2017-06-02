@@ -7,6 +7,8 @@ import com.rmbcorp.javawriter.clazz.Clazz;
 import com.rmbcorp.javawriter.clazz.ClazzImplManager;
 import com.rmbcorp.javawriter.logman.LoggerManager;
 import com.rmbcorp.javawriter.logman.TempLogger;
+import com.rmbcorp.javawriter.processor.ClazzProcessor;
+import com.rmbcorp.javawriter.processor.ProcessorProvider;
 import org.junit.After;
 import org.junit.Test;
 
@@ -97,11 +99,12 @@ public class JavacTestIT {
     @Test public void fullCompileTest() {
         testFile = new File(getNormalPathname());
         ClazzImplManager clazzImplManager = ClazzImplManager.getInstance();
+        ClazzProcessor clazzProcessor = ProcessorProvider.get(ProcessorProvider.CLAZZIMPL);
         Clazz clazz = setupClass(clazzImplManager.get("", FILE_NAME));
         BuildJob buildJob = new JavacJob(FILE_NAME, RELATIVE_PATH);
         buildJob.setBinPath(BIN_PATH);
         buildJob.setClassPath("\"" + System.getenv().get("PWD") + "\\target\\classes" + "\"");
-        buildJob.setFileContents(clazzImplManager.writeOut(clazz));
+        buildJob.setFileContents(clazzProcessor.writeOut(clazz));
         compile(buildJob);
 
         File binary = new File(BIN_PATH + SL + FILE_NAME + ".class");

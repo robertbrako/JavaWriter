@@ -1,4 +1,4 @@
-package com.rmbcorp.javawriter.clazz;
+package com.rmbcorp.javawriter.processor;
 
 import java.util.HashSet;
 import java.util.Iterator;

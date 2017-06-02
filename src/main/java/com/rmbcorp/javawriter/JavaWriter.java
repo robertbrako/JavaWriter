@@ -1,5 +1,7 @@
 package com.rmbcorp.javawriter;
 
+import com.rmbcorp.javawriter.processor.ClazzProcessor;
+import com.rmbcorp.javawriter.processor.ProcessorProvider;
 import com.rmbcorp.util.argparser.ArgParser;
 import com.rmbcorp.util.argparser.ParserProv;
 import com.rmbcorp.javawriter.autojavac.AutoJavacException;
@@ -12,7 +14,6 @@ import com.rmbcorp.javawriter.logman.LoggerManager;
 import com.rmbcorp.javawriter.logman.TempLogger;
 
 import java.io.BufferedReader;
-import java.io.DataInput;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
@@ -47,6 +48,7 @@ class JavaWriter {
 
     private static TempLogger logger;
     private static Compiler compiler;
+    private static ClazzProcessor clazzProcessor;
     private static ClazzImplManager clazzManager;
     private static ArgParser argParser;
     private static boolean debugEnv = false;
@@ -61,6 +63,7 @@ class JavaWriter {
         logger = new LoggerManager(useSout);
         compiler = new JavaCompiler(logger);
         clazzManager = ClazzImplManager.getInstance();
+        clazzProcessor = ProcessorProvider.get(ProcessorProvider.CLAZZIMPL);
 
         JavacJob buildJob = getJavacJob(jwOptions, javacOptsMap);
         try {
@@ -83,7 +86,7 @@ class JavaWriter {
         buildJob.setFileName(filename);
         jwOptions.put(JWOpts.FILENAME, filename);
         Clazz clazz = getClazz(clazzManager, jwOptions);
-        buildJob.setFileContents(clazzManager.writeOut(clazz));
+        buildJob.setFileContents(clazzProcessor.writeOut(clazz));
         return buildJob;
     }
 

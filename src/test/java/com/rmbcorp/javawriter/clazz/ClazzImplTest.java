@@ -1,11 +1,11 @@
 package com.rmbcorp.javawriter.clazz;
 
+import com.rmbcorp.javawriter.processor.*;
 import com.rmbcorp.util.StringUtil;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.DataInput;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,12 +27,15 @@ public class ClazzImplTest {
     public static final Class<String> STRING_CLASS = String.class;
     public static final String CLASS_NAME = "ArbitraryName";
     public static final String COM_RMBCORP_JAVAWRITER = "com.rmbcorp.javawriter";
-    ClazzImplManager clazzManager;
-    Clazz clazz;
+
+    private ClazzProcessor clazzProcessor;
+    private ClazzImplManager clazzManager;
+    private Clazz clazz;
 
     @Before
     public void setUp() throws Exception {
         clazzManager = ClazzImplManager.getInstance();
+        clazzProcessor = ProcessorProvider.get(ProcessorProvider.CLAZZIMPL);
         clazz = clazzManager.get(COM_RMBCORP_JAVAWRITER, "ClazzImpl2");
         setupClass(Collections.<Class>singletonList(Clazz.class));
     }
@@ -47,23 +50,23 @@ public class ClazzImplTest {
     @Test
     public void cannotHaveEmptyNameTest() {
         Clazz nameless = clazzManager.get(COM_RMBCORP_JAVAWRITER, "");
-        String output = clazzManager.writeOut(nameless);
+        String output = clazzProcessor.writeOut(nameless);
         assertTrue("".equals(output));
-        assertTrue(clazzManager.hasError(CANNOT_HAVE_EMPTY_CLASS_NAME));
+        assertTrue(clazzProcessor.hasError(CANNOT_HAVE_EMPTY_CLASS_NAME));
     }
 
     @Test
     public void typeMustBeClassOrInterfaceTest() {
         clazz.setClassType(null);
-        clazzManager.writeOut(clazz);
-        assertTrue(clazzManager.hasError(MUST_BE_CLASS_OR_INTERFACE));
+        clazzProcessor.writeOut(clazz);
+        assertTrue(clazzProcessor.hasError(MUST_BE_CLASS_OR_INTERFACE));
     }
 
     @Test
     public void outputContainsAllImportsTest() {
         List<Class> classList = Arrays.<Class>asList(INTEGER_CLASS, STRING_CLASS);
         clazz.addImports(classList);
-        String[] output = clazzManager.writeOut(clazz).split(";|\\s");
+        String[] output = clazzProcessor.writeOut(clazz).split(";|\\s");
         assertTrue(StringUtil.containsAll(output, nameMatch(classList)));
     }
 
@@ -78,7 +81,7 @@ public class ClazzImplTest {
     @Test
     public void packageNameNotCurrentlyRequiredTest() {
         Clazz packageless = clazzManager.get("", CLASS_NAME);
-        String output = clazzManager.writeOut(packageless);
+        String output = clazzProcessor.writeOut(packageless);
         assertTrue(StringUtil.containsAll(output.split("\\s"), new String[]{ "class", CLASS_NAME, "}" }));
     }
 
@@ -86,44 +89,22 @@ public class ClazzImplTest {
     public void classCannotBeAbstractAndFinalTest() {
         clazz.setAbstract(true);
         clazz.setFinal(true);
-        assertTrue("".equals(clazzManager.writeOut(clazz)));
-        assertTrue(clazzManager.hasError(CANNOT_BE_ABSTRACT_AND_FINAL));
+        assertTrue("".equals(clazzProcessor.writeOut(clazz)));
+        assertTrue(clazzProcessor.hasError(CANNOT_BE_ABSTRACT_AND_FINAL));
     }
 
     @Test
     public void interfaceCannotBePrivateTest() {
         clazz.setClassType(Clazz.ClassType.INTERFACE);
         clazz.setVisibility(Clazz.Visibility.PRIVATE);
-        clazzManager.writeOut(clazz);
-        assertTrue(clazzManager.hasError(CANNOT_HAVE_PRIVATE_INTERFACE));
-    }
-
-    @Test
-    public void removeResultTest() {
-        ClazzValidator validator = new ClazzValidator();
-        ClazzImplProcessor processor = new ClazzImplProcessor(validator);
-        clazz.setClassType(null);
-        processor.writeOut((ClazzImpl) clazz);
-
-        assertTrue(validator.containsError(MUST_BE_CLASS_OR_INTERFACE));
-        validator.removeResult(MUST_BE_CLASS_OR_INTERFACE);
-        assertFalse(validator.containsError(MUST_BE_CLASS_OR_INTERFACE));
-    }
-
-    @Test
-    public void extendedKeywordReplacementTest() {
-        String testString = "Goto";
-        String result = JavaKeywords.replaceJavaKeyword(testString);
-        assertTrue(testString.equalsIgnoreCase(result));
-
-        result = JavaKeywords.replaceJavaKeywordSafe(testString);
-        assertFalse(testString.equalsIgnoreCase(result));
+        clazzProcessor.writeOut(clazz);
+        assertTrue(clazzProcessor.hasError(CANNOT_HAVE_PRIVATE_INTERFACE));
     }
 
     @Test
     public void fieldNameValidationTest() {
         setupClass(Collections.<Class>singletonList(Clazz.class));
-        String output = clazzManager.writeOut(clazz);
+        String output = clazzProcessor.writeOut(clazz);
         assertFalse(output.contains("private Class class"));
         assertTrue(output.contains("private Class clazz"));
     }
@@ -131,7 +112,7 @@ public class ClazzImplTest {
     @Test
     public void forLoopGenerationTest() {
         setupClass(Collections.<Class>singletonList(Clazz.class));
-        String output = clazzManager.writeOut(clazz);
+        String output = clazzProcessor.writeOut(clazz);
         assertTrue(output.contains("for (Class clazz : list)"));
     }
 
@@ -142,7 +123,7 @@ public class ClazzImplTest {
                 COM_RMBCORP_JAVAWRITER, Arrays.asList(String.class, Integer.class)));
         withMethod.addMethod(new JMethod("isDestroyWorlds", Void.class, Clazz.Visibility.PUBLIC,
                 COM_RMBCORP_JAVAWRITER, Arrays.asList(String.class, Integer.class)));
-        String output = clazzManager.writeOut(withMethod);
+        String output = clazzProcessor.writeOut(withMethod);
         Pattern pattern = Pattern.compile("public [Bb]oolean setDestroyWorlds\\(String.*Integer.*\\)");
         Matcher matcher = pattern.matcher(output);
         assertTrue(matcher.find());
@@ -154,7 +135,7 @@ public class ClazzImplTest {
     @Test public void testParamSameTypeTest() {
         setupClass(Collections.<Class>singletonList(ParamTest.class));
         Pattern pattern = Pattern.compile("String setFoo\\((.*)\\)");
-        Matcher matcher = pattern.matcher(clazzManager.writeOut(clazz));
+        Matcher matcher = pattern.matcher(clazzProcessor.writeOut(clazz));
         if (matcher.find()) {
             String[] group = matcher.group(1).split(",");
             assertTrue(group.length == 3);
@@ -168,20 +149,20 @@ public class ClazzImplTest {
         setupClass(new ArrayList<>());
         String expectedString = "return new String";
         Pattern pattern = Pattern.compile(expectedString);
-        Matcher matcher = pattern.matcher(clazzManager.writeOut(clazz));
+        Matcher matcher = pattern.matcher(clazzProcessor.writeOut(clazz));
         assertTrue(matcher.find() && matcher.group().contains(expectedString));
     }
 
     @Test public void insertIfIfBooleanParamTest() {
         Clazz clazz = setupClass(Collections.<Class>singletonList(ParamTest.class));
         Pattern pattern = Pattern.compile("if\\s*\\(.*\\)");
-        Matcher matcher = pattern.matcher(clazzManager.writeOut(clazz));
+        Matcher matcher = pattern.matcher(clazzProcessor.writeOut(clazz));
         assertTrue(matcher.find());
     }
 
     @Test public void bytePrimitiveIsNotImportedTest() {
         Clazz clazz = setupClass(Collections.<Class>singletonList(DataInput.class));
-        String output = clazzManager.writeOut(clazz);
+        String output = clazzProcessor.writeOut(clazz);
         assertFalse(output.contains("import byte"));
         assertFalse(output.contains("byte[] byte"));
     }

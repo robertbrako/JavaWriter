@@ -20,7 +20,7 @@ public interface Clazz {
             return PACKAGE.equals(this) ? "" : name().toLowerCase();
         }
 
-        int getModifier() {
+        public int getModifier() {
             return modifier;
         }
     }

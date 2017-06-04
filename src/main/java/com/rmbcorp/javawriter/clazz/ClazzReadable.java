@@ -38,4 +38,6 @@ public interface ClazzReadable {
     Set<Class> getImplementations();
 
     Set<JMethod> getMethods();
+
+    Set<JVariable> getBeanVariables();
 }

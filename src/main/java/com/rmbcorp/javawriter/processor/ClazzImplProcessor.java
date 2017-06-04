@@ -1,10 +1,7 @@
 package com.rmbcorp.javawriter.processor;
 
-import com.rmbcorp.javawriter.clazz.Clazz;
+import com.rmbcorp.javawriter.clazz.*;
 import com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError;
-import com.rmbcorp.javawriter.clazz.ClazzReadable;
-import com.rmbcorp.javawriter.clazz.JMethod;
-import com.rmbcorp.javawriter.clazz.JVariable;
 import com.rmbcorp.util.StringUtil;
 import com.rmbcorp.util.ValidationManager;
 
@@ -209,25 +206,29 @@ final class ClazzImplProcessor implements ClazzProcessor {
                 builder.append(", ");
             }
             variables.put(new JVariable(varName, simpleName), makeSetter);
-            boolean found = false;
-            if (!param.equals(simpleName)) {
-                for (Class clazz : imports) {//future: make more efficient
-                    if (clazz.getSimpleName().contains(trimmedParam)) {
-                        found = true;
-                    }
-                }
-                if (!found) {
-                    try {
-                        imports.add(Class.forName(cleanParamString(param)));
-                    } catch (ClassNotFoundException ignored) {
-                        Logger.getGlobal().log(Level.INFO, ignored.getLocalizedMessage(), ignored);
-                        validator.addResult(ClazzError.INVALID_CLASS_NAME);
-                    }
-                }
-            }
+            resolveParamImports(imports, param, simpleName, trimmedParam);
         }
         builder.append(")");
         return variables;
+    }
+
+    private void resolveParamImports(Set<Class> imports, String param, String simpleName, String trimmedParam) {
+        boolean found = false;
+        if (!param.equals(simpleName)) {
+            for (Class clazz : imports) {//future: make more efficient
+                if (clazz.getSimpleName().contains(trimmedParam)) {
+                    found = true;
+                }
+            }
+            if (!found) {
+                try {
+                    imports.add(Class.forName(cleanParamString(param)));
+                } catch (ClassNotFoundException ignored) {
+                    Logger.getGlobal().log(Level.INFO, ignored.getLocalizedMessage(), ignored);
+                    validator.addResult(ClazzError.INVALID_CLASS_NAME);
+                }
+            }
+        }
     }
 
     private String cleanParamString(String string) {

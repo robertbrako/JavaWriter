@@ -15,29 +15,21 @@
 */
 package com.rmbcorp.javawriter.processor;
 
-import java.util.EnumMap;
-import java.util.Map;
+public class ProcessorProvider {
 
-public enum ProcessorProvider {
+    private ProcessorProvider() { }
 
-    CLAZZIMPL;
+    public static ClazzProcessor getBeanProcessor() {
+        ClazzValidator validator = new ClazzValidator();
+        ProcUtil procUtil = new ProcUtil();
+        ClassStarter classStarter = new ClassStarter(validator, procUtil);
+        return new BeanProcessor(validator, classStarter, procUtil);
+    }
 
-    private static Map<ProcessorProvider, ClazzProcessor> processorMap = new EnumMap<>(ProcessorProvider.class);
-
-
-    public static ClazzProcessor get(ProcessorProvider type) {
-        if (processorMap.get(type) == null) {
-            ProcUtil procUtil = new ProcUtil();
-            switch (type) {
-                case CLAZZIMPL:
-                    ClazzValidator validator = new ClazzValidator();
-                    processorMap.put(CLAZZIMPL,
-                            new ClazzImplProcessor(validator, new ClassStarter(validator, procUtil), procUtil));
-                    break;
-                default:
-                    break;
-            }
-        }
-        return processorMap.get(type);
+    public static ClazzProcessor getClazzProcessor() {
+        ClazzValidator validator = new ClazzValidator();
+        ProcUtil procUtil = new ProcUtil();
+        ClassStarter classStarter = new ClassStarter(validator, procUtil);
+        return new ClazzImplProcessor(validator, classStarter, procUtil);
     }
 }

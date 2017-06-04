@@ -22,16 +22,15 @@ Goals for 0.3:
 
 Goals for 0.4:
   1. Handle parametrized types
-  2. Save compilation errors to CSV file
-  3. Support adding custom methods
-  4. Support bean creation: getters and setters
+  2. Support adding custom methods
+  3. Support bean creation: getters and setters
 
 Goals for 0.5
   1. Refinements needed for robust class building, to include:
      1. enum creation
      2. inner/anonymous class creation
      3. pre-method and inline comments
-  2. Optional: publish the object-oriented version of javawriter
+  2. Save compilation errors to CSV file
 
 Goals for 0.6 and above might not be disclosed.
 

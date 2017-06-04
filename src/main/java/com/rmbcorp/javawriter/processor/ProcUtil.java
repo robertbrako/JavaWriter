@@ -22,6 +22,9 @@ import java.util.*;
 
 public class ProcUtil {
 
+    public static final String GEN_FOLDER = "src/gen/";
+    public static final String BIN_FOLDER = "bin/";
+
     final String IMPORT_PLACEHOLDER = "//%%IMPORTS%%";
     final String VARIABLE_PLACEHOLDER = "//%%VARIABLES%%";
     final char ONE_LINE = '\n';

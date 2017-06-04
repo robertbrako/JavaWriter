@@ -15,11 +15,12 @@
 */
 package com.rmbcorp.javawriter.processor;
 
-import com.rmbcorp.javawriter.clazz.Clazz;
-import com.rmbcorp.javawriter.clazz.ClazzImplManager;
-import com.rmbcorp.javawriter.clazz.ClazzReadable;
+import com.rmbcorp.javawriter.clazz.*;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError.MUST_BE_CLASS_OR_INTERFACE;
 import static org.junit.Assert.assertFalse;
@@ -30,21 +31,19 @@ public class ClazzProcessorTest {
     public static final String COM_RMBCORP_JAVAWRITER = "com.rmbcorp.javawriter";
 
     private ClazzProcessor clazzProcessor;
-    private ClazzImplManager clazzManager;
-    private ClazzValidator validator;
     private Clazz clazz;
 
     @Before
     public void setUp() throws Exception {
-        ProcUtil procUtil = new ProcUtil();
-        clazzManager = ClazzImplManager.getInstance();
-        validator = new ClazzValidator();
-        clazzProcessor = new ClazzImplProcessor(validator, new ClassStarter(validator, procUtil), procUtil);
-        clazz = clazzManager.get(COM_RMBCORP_JAVAWRITER, "ClazzImpl2");
+        clazzProcessor = ProcessorProvider.getBeanProcessor();
+        clazz = ClazzImplManager.getInstance().get(COM_RMBCORP_JAVAWRITER, "ClazzImpl2");
     }
 
     @Test
     public void removeResultTest() {
+        ProcUtil procUtil = new ProcUtil();
+        ClazzValidator validator = new ClazzValidator();
+        clazzProcessor = new ClazzImplProcessor(validator, new ClassStarter(validator, procUtil), procUtil);
         clazz.setClassType(null);
         clazzProcessor.writeOut(clazz);
 
@@ -61,5 +60,37 @@ public class ClazzProcessorTest {
 
         result = JavaKeywords.replaceJavaKeywordSafe(testString);
         assertFalse(testString.equalsIgnoreCase(result));
+    }
+
+    @Test
+    public void makeBeanFromVariables() {
+        clazz.addBeanVariable(new JVariable("username", String.class));
+        String output = clazzProcessor.writeOut(clazz);
+        System.out.println(output);
+
+        assertTrue(output.contains("public void setUsername(String username)"));
+        assertTrue(output.contains("this.username = username"));
+        assertTrue(output.contains("public String getUsername()"));
+        assertTrue(output.contains("return username"));
+    }
+
+    @Test
+    public void makeBeanFromMethods() {
+        clazz.addMethod(new JMethod("setUserId", Void.class, Clazz.Visibility.PUBLIC, COM_RMBCORP_JAVAWRITER, Integer.class));
+        clazz.addMethod(new JMethod("getUserId", Integer.class, Clazz.Visibility.PUBLIC, COM_RMBCORP_JAVAWRITER));
+        String output = clazzProcessor.writeOut(clazz);
+
+        assertTrue(output.contains("public void setUserId(int userId)"));
+        assertTrue(output.contains("this.userId = userId"));
+        assertTrue(output.contains("public int getUserId()"));
+        assertTrue(output.contains("return userId"));
+    }
+
+    @Test
+    public void beanIsNotPublicByDefault() {
+        String output = clazzProcessor.writeOut(clazz);
+        Pattern pattern = Pattern.compile("public.*class");
+        Matcher matcher = pattern.matcher(output);
+        assertFalse(matcher.find());
     }
 }

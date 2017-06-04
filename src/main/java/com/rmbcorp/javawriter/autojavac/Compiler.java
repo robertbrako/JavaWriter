@@ -19,9 +19,6 @@ import com.rmbcorp.javawriter.BuildJob;
 
 public interface Compiler {
 
-    String GEN_FOLDER = "src/gen/";
-    String BIN_FOLDER = "bin/";
-
     void compile(BuildJob buildJob) throws AutoJavacException;
 
     void setParams(JavacParams... params);

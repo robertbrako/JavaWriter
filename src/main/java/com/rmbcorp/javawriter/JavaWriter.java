@@ -1,6 +1,7 @@
 package com.rmbcorp.javawriter;
 
 import com.rmbcorp.javawriter.processor.ClazzProcessor;
+import com.rmbcorp.javawriter.processor.ProcUtil;
 import com.rmbcorp.javawriter.processor.ProcessorProvider;
 import com.rmbcorp.util.argparser.ArgParser;
 import com.rmbcorp.util.argparser.ParserProv;
@@ -32,7 +33,7 @@ class JavaWriter {
 
     enum JavacOpts { CLASSPATH, D }
     enum JWOpts implements ArgParser.HasDefault {
-        DEBUGENV, USESOUT("false"), FILENAME, PACKAGE, GEN(Compiler.GEN_FOLDER), CLASSTYPE("class"), VISIBILITY(Visibility.PACKAGE.toString());
+        DEBUGENV, USESOUT("false"), FILENAME, PACKAGE, GEN(ProcUtil.GEN_FOLDER), CLASSTYPE("class"), VISIBILITY(Visibility.PACKAGE.toString());
 
         private final String defaultVal;
 
@@ -66,7 +67,7 @@ class JavaWriter {
         logger = new LoggerManager(useSout);
         compiler = new JavaCompiler(logger);
         clazzManager = ClazzImplManager.getInstance();
-        clazzProcessor = ProcessorProvider.get(ProcessorProvider.CLAZZIMPL);
+        clazzProcessor = ProcessorProvider.getClazzProcessor();
 
         JavacJob buildJob = getJavacJob(jwOptions, javacOptsMap);
         try {

@@ -5,6 +5,8 @@ import com.rmbcorp.javawriter.autojavac.JavaCompiler;
 import com.rmbcorp.javawriter.autojavac.JavacParams;
 import com.rmbcorp.javawriter.clazz.Clazz;
 import com.rmbcorp.javawriter.clazz.ClazzImplManager;
+import com.rmbcorp.javawriter.clazz.ClazzReadable;
+import com.rmbcorp.javawriter.clazz.JVariable;
 import com.rmbcorp.javawriter.logman.LoggerManager;
 import com.rmbcorp.javawriter.logman.TempLogger;
 import com.rmbcorp.javawriter.processor.ClazzProcessor;
@@ -13,6 +15,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -99,11 +102,13 @@ public class JavacTestIT {
     @Test public void fullCompileTest() {
         testFile = new File(getNormalPathname());
         ClazzImplManager clazzImplManager = ClazzImplManager.getInstance();
-        ClazzProcessor clazzProcessor = ProcessorProvider.get(ProcessorProvider.CLAZZIMPL);
-        Clazz clazz = setupClass(clazzImplManager.get("", FILE_NAME));
+        ClazzProcessor clazzProcessor = ProcessorProvider.getClazzProcessor();
+        Clazz clazz = clazzImplManager.get("", FILE_NAME);
+        clazz.addImplementations(Collections.<Class>singletonList(List.class));
+
         BuildJob buildJob = new JavacJob(FILE_NAME, RELATIVE_PATH);
         buildJob.setBinPath(BIN_PATH);
-        buildJob.setClassPath("\"" + System.getenv().get("PWD") + "\\target\\classes" + "\"");
+        buildJob.setClassPath(getPwd() + "target\\classes\"");
         buildJob.setFileContents(clazzProcessor.writeOut(clazz));
         compile(buildJob);
 
@@ -112,9 +117,32 @@ public class JavacTestIT {
         binary.delete();
     }
 
-    private Clazz setupClass(Clazz clazz) {
-        clazz.addImplementations(Collections.<Class>singletonList(List.class));
-        return clazz;
+    @Test public void beanCompileTest() {
+        testFile = new File(getNormalPathname());
+        ClazzProcessor clazzProcessor = ProcessorProvider.getBeanProcessor();
+        Clazz clazz = ClazzImplManager.getInstance().get("", FILE_NAME);
+        clazz.addImplementations(Collections.<Class>singletonList(ClazzReadable.class));
+        clazz.addBeanVariable(new JVariable("accountid", Long.class));
+        clazz.addBeanVariable(new JVariable("userid", Integer.class));
+        clazz.addBeanVariable(new JVariable("firstname", String.class));
+        clazz.addBeanVariable(new JVariable("lastname", String.class));
+        clazz.addBeanVariable(new JVariable("updatedon", LocalDateTime.class));
+        clazz.addBeanVariable(new JVariable("updatedby", String.class));
+
+        BuildJob buildJob = new JavacJob(FILE_NAME, RELATIVE_PATH);
+        buildJob.setBinPath(BIN_PATH);
+        buildJob.setClassPath(getPwd() + "target\\classes\"");
+        buildJob.setFileContents(clazzProcessor.writeOut(clazz));
+        compile(buildJob);
+
+        File binary = new File(BIN_PATH + SL + FILE_NAME + ".class");
+        assertTrue(binary.exists());
+        binary.delete();
+    }
+
+    private String getPwd() {
+        String pwd = System.getenv().get("PWD");
+        return pwd == null ? "\"" : "\"" + pwd + "\\";
     }
 
     @After public void cleanup() {

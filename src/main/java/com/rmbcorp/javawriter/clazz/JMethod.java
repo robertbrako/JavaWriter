@@ -30,10 +30,11 @@ public class JMethod {
 
     public JMethod(Method method) {
         this.method = method;
+        this.name = method.getName();
     }
 
     public JMethod(String name, Class<?> returnType, Clazz.Visibility visibility, String packageName, Class<?>... params) {
-        this(null);
+        this.method = null;
         this.name = name;
         this.returnType = returnType;
         this.modifier = visibility.getModifier();

@@ -35,7 +35,7 @@ public class ClazzImplTest {
     @Before
     public void setUp() throws Exception {
         clazzManager = ClazzImplManager.getInstance();
-        clazzProcessor = ProcessorProvider.get(ProcessorProvider.CLAZZIMPL);
+        clazzProcessor = ProcessorProvider.getClazzProcessor();
         clazz = clazzManager.get(COM_RMBCORP_JAVAWRITER, "ClazzImpl2");
         setupClass(Collections.<Class>singletonList(Clazz.class));
     }

@@ -16,6 +16,7 @@ public class JVariable {
     }
 
     public JVariable(String varName, Class<?> classType) {
+        visibility = Clazz.Visibility.PRIVATE;
         this.varName = varName;
         this.classType = classType;
         classTypeSimple = getClassSimpleName(classType.getSimpleName());

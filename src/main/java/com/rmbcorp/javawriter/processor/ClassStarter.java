@@ -15,11 +15,11 @@
 */
 package com.rmbcorp.javawriter.processor;
 
-import com.rmbcorp.javawriter.clazz.Clazz;
-import com.rmbcorp.javawriter.clazz.ClazzImplManager;
-import com.rmbcorp.javawriter.clazz.ClazzReadable;
+import com.rmbcorp.javawriter.clazz.*;
 import com.rmbcorp.util.StringUtil;
 
+import java.lang.reflect.Method;
+import java.util.HashSet;
 import java.util.Set;
 
 public class ClassStarter {
@@ -72,21 +72,33 @@ public class ClassStarter {
         builder.append("interface ").append(className);
     }
 
-    void buildImplementations(StringBuilder builder, Clazz.ClassType classType, Set<Class> implementations) {
+    Set<JMethod> buildImplementations(StringBuilder builder, Clazz.ClassType classType, Set<Class> implementations) {
+        Set<JMethod> methods = new HashSet<>();
         if (!implementations.isEmpty()) {
             builder.append(Clazz.ClassType.CLASS.equals(classType) ? " implements " : " extends ");
             for (Class object : implementations) {
                 builder.append(procUtil.dollarToDot(procUtil.getClassSimpleName(object.toString())));
                 builder.append(", ");
+                for (Method method : object.getDeclaredMethods()) {
+                    methods.add(new JMethod(method));
+                }
             }
             trimComma(builder);
         }
+        return methods;
     }
 
-    private void trimComma(StringBuilder result) {
-        int length = result.lastIndexOf(", ");
+    private void trimComma(StringBuilder builder) {
+        int length = builder.lastIndexOf(", ");
         if (length != -1) {
-            result.replace(length, length + 1, "");
+            builder.replace(length, length + 1, "");
         }
+    }
+
+    void buildHeader(String packagePath, StringBuilder builder) {
+        if (!StringUtil.isEmpty(packagePath)) {
+            builder.append("package ").append(packagePath).append(';').append(procUtil.ONE_LINE).append(procUtil.ONE_LINE);
+        }
+        builder.append(procUtil.IMPORT_PLACEHOLDER).append(procUtil.ONE_LINE);
     }
 }

@@ -19,6 +19,7 @@ class ClazzImpl implements Clazz, ClazzReadable {
     private Class extension;
     private final Set<Class> implementations = new HashSet<>();
     private final Set<JMethod> methods = new HashSet<>();
+    private final Set<JVariable> variables = new HashSet<>();
 
 
     ClazzImpl(String packagePath, String className) {
@@ -71,7 +72,10 @@ class ClazzImpl implements Clazz, ClazzReadable {
         methods.add(jMethod);
     }
 
-
+    @Override
+    public void addBeanVariable(JVariable variable) {
+        variables.add(variable);
+    }
 
     @Override
     public String getPackagePath() {
@@ -121,5 +125,10 @@ class ClazzImpl implements Clazz, ClazzReadable {
     @Override
     public Set<JMethod> getMethods() {
         return methods;
+    }
+
+    @Override
+    public Set<JVariable> getBeanVariables() {
+        return variables;
     }
 }

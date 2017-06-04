@@ -26,4 +26,8 @@ public interface BuildJob {
     String getBinPath();
 
     void setBinPath(String binPath);
+
+    static BuildJob get(String fileName, String relativePath) {
+        return new JavacJob(fileName, relativePath);
+    }
 }

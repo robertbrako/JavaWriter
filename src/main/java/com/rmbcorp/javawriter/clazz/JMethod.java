@@ -18,7 +18,6 @@ package com.rmbcorp.javawriter.clazz;
 import com.rmbcorp.javawriter.clazz.Clazz;
 
 import java.lang.reflect.Method;
-import java.util.List;
 
 public class JMethod {
 
@@ -33,7 +32,7 @@ public class JMethod {
         this.method = method;
     }
 
-    public JMethod(String name, Class<?> returnType, Clazz.Visibility visibility, String packageName, List<Class<?>> params) {
+    public JMethod(String name, Class<?> returnType, Clazz.Visibility visibility, String packageName, Class<?>... params) {
         this(null);
         this.name = name;
         this.returnType = returnType;
@@ -41,11 +40,11 @@ public class JMethod {
         this.asGenericString = visibility + " " + returnType.getCanonicalName() + " " + packageName + "." + name + String.format("(%s)", getParams(params));
     }
 
-    private String getParams(List<Class<?>> params) {
+    private String getParams(Class<?>[] params) {
         String result = "";
-        for (int i = 0; i < params.size(); i++) {
-            String comma = i == params.size() - 1 ? "" : ",";
-            result += params.get(i).getCanonicalName() + comma;
+        for (int i = 0; i < params.length; i++) {
+            String comma = i == params.length - 1 ? "" : ",";
+            result += params[i].getCanonicalName() + comma;
         }
         return result;
     }
@@ -73,5 +72,15 @@ public class JMethod {
     @Override
     public String toString() {
         return method != null ? method.toString() : asGenericString;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof JMethod && name.equals(((JMethod) obj).name);
+    }
+
+    @Override
+    public int hashCode() {
+        return name.hashCode();
     }
 }

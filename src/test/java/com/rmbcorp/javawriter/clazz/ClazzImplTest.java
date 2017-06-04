@@ -120,9 +120,9 @@ public class ClazzImplTest {
     public void addCustomMethodTest() throws NoSuchMethodException {
         Clazz withMethod = clazzManager.get(COM_RMBCORP_JAVAWRITER, CLASS_NAME);
         withMethod.addMethod(new JMethod("setDestroyWorlds", Boolean.class, Clazz.Visibility.PUBLIC,
-                COM_RMBCORP_JAVAWRITER, Arrays.asList(String.class, Integer.class)));
+                COM_RMBCORP_JAVAWRITER, String.class, Integer.class));
         withMethod.addMethod(new JMethod("isDestroyWorlds", Void.class, Clazz.Visibility.PUBLIC,
-                COM_RMBCORP_JAVAWRITER, Arrays.asList(String.class, Integer.class)));
+                COM_RMBCORP_JAVAWRITER, String.class, Integer.class));
         String output = clazzProcessor.writeOut(withMethod);
         Pattern pattern = Pattern.compile("public [Bb]oolean setDestroyWorlds\\(String.*Integer.*\\)");
         Matcher matcher = pattern.matcher(output);

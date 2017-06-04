@@ -21,8 +21,6 @@ import com.rmbcorp.javawriter.clazz.ClazzReadable;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
-
 import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError.MUST_BE_CLASS_OR_INTERFACE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -33,21 +31,22 @@ public class ClazzProcessorTest {
 
     private ClazzProcessor clazzProcessor;
     private ClazzImplManager clazzManager;
+    private ClazzValidator validator;
     private Clazz clazz;
 
     @Before
     public void setUp() throws Exception {
+        ProcUtil procUtil = new ProcUtil();
         clazzManager = ClazzImplManager.getInstance();
-        clazzProcessor = ProcessorProvider.get(ProcessorProvider.CLAZZIMPL);
+        validator = new ClazzValidator();
+        clazzProcessor = new ClazzImplProcessor(validator, new ClassStarter(validator, procUtil), procUtil);
         clazz = clazzManager.get(COM_RMBCORP_JAVAWRITER, "ClazzImpl2");
     }
 
     @Test
     public void removeResultTest() {
-        ClazzValidator validator = new ClazzValidator();
-        ClazzImplProcessor processor = new ClazzImplProcessor(validator);
         clazz.setClassType(null);
-        processor.writeOut((ClazzReadable) clazz);
+        clazzProcessor.writeOut(clazz);
 
         assertTrue(validator.containsError(MUST_BE_CLASS_OR_INTERFACE));
         validator.removeResult(MUST_BE_CLASS_OR_INTERFACE);

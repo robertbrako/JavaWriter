@@ -6,24 +6,40 @@ package com.rmbcorp.javawriter.clazz;
 public class JVariable {
     private String varName;
     private Clazz.Visibility visibility;
-    private String classType;
+    private Class<?> classType;
+    private String classTypeSimple;
 
-    public JVariable(String varName, String classType) {
+    public JVariable(String varName, String classType) {//deprecation is being considered
         visibility = Clazz.Visibility.PRIVATE;
         this.varName = varName;
+        this.classTypeSimple = classType;
+    }
+
+    public JVariable(String varName, Class<?> classType) {
+        this.varName = varName;
         this.classType = classType;
+        classTypeSimple = getClassSimpleName(classType.getSimpleName());
     }
 
     public String writeOut() {
-        return visibility + " " + classType + " " + varName;
+        return visibility + " " + classTypeSimple + " " + varName;
     }
 
     public String getName() {
         return varName;
     }
 
-    public String getType() {
+    public Class<?> getClassType() {
         return classType;
+    }
+
+    public String getType() {
+        return classTypeSimple;
+    }
+
+    private String getClassSimpleName(String object) {
+        int begin = object.lastIndexOf('.') + 1;
+        return object.substring(begin).replaceAll(";", "");
     }
 
     @Override

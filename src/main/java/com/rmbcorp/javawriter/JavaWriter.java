@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**Need to produce classes on the fly somehow...
  * Created by rmbdev on 9/5/2016.
@@ -46,6 +48,7 @@ class JavaWriter {
         }
     }
 
+    private static final Logger jLogger = Logger.getGlobal();
     private static TempLogger logger;
     private static Compiler compiler;
     private static ClazzProcessor clazzProcessor;
@@ -69,6 +72,7 @@ class JavaWriter {
         try {
             compiler.compile(buildJob);
         } catch (AutoJavacException ignored) {
+            jLogger.log(Level.SEVERE, ignored.getLocalizedMessage(), ignored);
         }
         checkDebug();
     }
@@ -96,6 +100,7 @@ class JavaWriter {
         try (BufferedReader bin = new BufferedReader(new InputStreamReader(System.in)) ) {
             filename = bin.readLine();
         } catch (IOException e) {
+            jLogger.log(Level.INFO, e.getLocalizedMessage(), e);
             filename = DEFAULT_FILENAME;
         }
         return filename;
@@ -108,6 +113,7 @@ class JavaWriter {
             clazz.setVisibility(Visibility.valueOf(jwOptions.get(JWOpts.VISIBILITY).toUpperCase()));
         } catch (IllegalArgumentException e) {
             clazz.setVisibility(Visibility.PACKAGE);
+            jLogger.log(Level.INFO, e.getLocalizedMessage(), e);
         }
         clazz.addImports(Arrays.<Class>asList(Integer.class, String.class, String.class));
         clazz.setFinal(true);

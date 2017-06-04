@@ -20,7 +20,7 @@ public class ClazzValidator implements com.rmbcorp.util.ValidationManager<ClazzE
 
     @Override
     public boolean hasErrors() {
-        return errorTypes.size() != 0;
+        return !errorTypes.isEmpty();
     }
 
     @Override

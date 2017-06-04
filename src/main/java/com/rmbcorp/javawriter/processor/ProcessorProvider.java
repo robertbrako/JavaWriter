@@ -27,9 +27,12 @@ public enum ProcessorProvider {
 
     public static ClazzProcessor get(ProcessorProvider type) {
         if (processorMap.get(type) == null) {
+            ProcUtil procUtil = new ProcUtil();
             switch (type) {
                 case CLAZZIMPL:
-                    processorMap.put(CLAZZIMPL, new ClazzImplProcessor(new ClazzValidator()));
+                    ClazzValidator validator = new ClazzValidator();
+                    processorMap.put(CLAZZIMPL,
+                            new ClazzImplProcessor(validator, new ClassStarter(validator, procUtil), procUtil));
                     break;
                 default:
                     break;

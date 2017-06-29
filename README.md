@@ -21,7 +21,7 @@ Goals for 0.3:
   3. Ability to create if statements
 
 Goals for 0.4:
-  1. Handle parametrized types
+  1. Improve API; easy package name setting and option to compile only
   2. Support adding custom methods
   3. Support bean creation: getters and setters
 
@@ -31,6 +31,7 @@ Goals for 0.5
      2. inner/anonymous class creation
      3. pre-method and inline comments
   2. Save compilation errors to CSV file
+  3. Handle parametrized types
 
 Goals for 0.6 and above might not be disclosed.
 

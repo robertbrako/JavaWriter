@@ -19,11 +19,14 @@ import com.rmbcorp.javawriter.clazz.JMethod;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ProcUtil {
 
     public static final String GEN_FOLDER = "src/gen/";
-    public static final String BIN_FOLDER = "bin/";
+    private final Pattern paramFinder = Pattern.compile("\\((.+)\\)");
+    private final Pattern paramTypeFinder = Pattern.compile("(.*)<(.*)>");
 
     final String IMPORT_PLACEHOLDER = "//%%IMPORTS%%";
     final String VARIABLE_PLACEHOLDER = "//%%VARIABLES%%";
@@ -74,11 +77,11 @@ public class ProcUtil {
     }
 
     ReturnParams getReturnAndParams(JMethod method) {
-        String[] contents = method.toString().split(" ");
+        String[] contents = method.toGenericString().split(" ");
         int indexOfReturnType = getIndexOfReturnType(contents);
         ReturnParams result = new ReturnParams();
         result.setReturnType(toPrimitive(getClassSimpleName(contents[indexOfReturnType])));
-        result.setParams(getPreParams(contents, indexOfReturnType + 1));
+        result.setParams(getParameters(method.toGenericString()));
         return result;
     }
 
@@ -107,29 +110,42 @@ public class ProcUtil {
         return startIndex;
     }
 
-    private List<String> getPreParams(String[] contents, int startIndex) {
-        List<String> preParams = new ArrayList<>();//see if we can use a sensible default size
-        String[] params = contents[startIndex].split("\\(");
-        params = params[1].split(",");
-        String lastParam = params[params.length - 1];
-        params[params.length - 1] = lastParam.substring(0, lastParam.length()-1);
-        for (String item : params) {
-            if (!"".equals(item)) {
-                preParams.add(item);
+    private List<JParam> getParameters(String fullString) {
+        List<JParam> jParams = new ArrayList<>(4);
+        Matcher matcher = paramFinder.matcher(fullString);
+        if(matcher.find()) {
+            String[] paramStrings = matcher.group(1).split(",");
+            for (String param : paramStrings) {
+                jParams.add(getNewParam(param));
             }
         }
-        return preParams;
+        return jParams;
+    }
+
+    private JParam getNewParam(String param) {
+        JParam newParam;
+        Matcher typeMatcher = paramTypeFinder.matcher(param);
+        if (typeMatcher.find()) {
+            newParam = new JParam(typeMatcher.group(1));
+            String[] paramTypes = typeMatcher.group(2).split(",");
+            for (String item : paramTypes) {
+                newParam.add(getClassSimpleName(item));
+            }
+        } else {
+            newParam = new JParam(param);
+        }
+        return newParam;
     }
 
     class ReturnParams {
         String returnType = "";
-        List<String> params = new ArrayList<>();
+        List<JParam> params = new ArrayList<>();
 
         void setReturnType(String returnType) {
             this.returnType = returnType;
         }
 
-        void setParams(List<String> params) {
+        void setParams(List<JParam> params) {
             this.params = params;
         }
 
@@ -137,8 +153,40 @@ public class ProcUtil {
             return returnType;
         }
 
-        List<String> getParams() {
+        List<JParam> getParams() {
             return params;
+        }
+    }
+
+    class JParam {
+
+        private String paramType;
+        private List<String> types = new ArrayList<>(2);
+
+        JParam(String paramType) {
+            this.paramType = paramType;
+        }
+
+        String getParamType() {
+            return paramType;
+        }
+
+        List<String> types() {
+            return types;
+        }
+
+        boolean add(String parametrizedType) {
+            return types.add(parametrizedType);
+        }
+
+        @Override
+        public int hashCode() {
+            return paramType.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof JParam && paramType.equals(((JParam) obj).getParamType());
         }
     }
 }

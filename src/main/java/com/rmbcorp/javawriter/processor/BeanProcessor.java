@@ -66,6 +66,7 @@ final class BeanProcessor implements ClazzProcessor {
         imports.addAll(clazz.getImplementations());
         classStarter.buildHeader(packagePath, builder);
         classStarter.buildClassOrInterface(builder, clazz.getClassType(), clazz);
+        classStarter.createParametrization(builder, "");
 
         Set<JMethod> beanMethods = getFromBeanVariables(packagePath, clazz.getBeanVariables());
         beanMethods.addAll(clazz.getMethods());
@@ -115,15 +116,15 @@ final class BeanProcessor implements ClazzProcessor {
             varCache.clear();
             ProcUtil.ReturnParams returnParams = procUtil.getReturnAndParams(method);
             String returnType = procUtil.dollarToDot(returnParams.getReturnType());
-            List<String> preParams = returnParams.getParams();
+            List<ProcUtil.JParam> preParams = returnParams.getParams();
 
             builder.append(procUtil.tab(lev))
                     .append(procUtil.getScope(method.getModifier()))
                     .append(returnType).append(' ')
                     .append(method.getName()).append('(');
-            for (Iterator<String> iterator = preParams.iterator(); iterator.hasNext(); ) {
-                String variable = iterator.next();
-                String varType = procUtil.toPrimitive(procUtil.getClassSimpleName(variable));
+            for (Iterator<ProcUtil.JParam> iterator = preParams.iterator(); iterator.hasNext(); ) {
+                ProcUtil.JParam variable = iterator.next();
+                String varType = procUtil.toPrimitive(procUtil.getClassSimpleName(variable.getParamType()));
                 String varName = procUtil.getVarName(method.getName().replaceFirst("set", ""));
                 varNames.put(varName, varType);
                 varCache.add(varName);

@@ -21,9 +21,13 @@ import com.rmbcorp.util.StringUtil;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ClassStarter {
 
+    private static final String TYPE_PLACEHOLDER = "%%TYPE%%";
+    private static final Pattern typedClass = Pattern.compile("\\w+(<.*>)");
     private final ClazzValidator validator;
     private final ProcUtil procUtil;
 
@@ -43,23 +47,28 @@ public class ClassStarter {
         if (Clazz.ClassType.INTERFACE.equals(classType)) {
             buildInterface(builder, clazz.getVisibility(), className);
         } else if (Clazz.ClassType.CLASS.equals(classType)) {
-            buildClass(builder, className, clazz.getVisibility(), clazz.isFinal(), clazz.isAbstract(), clazz.getExtension());
+            buildClass(builder, className, clazz);
         } else {
             validator.addResult(ClazzImplManager.ClazzError.MUST_BE_CLASS_OR_INTERFACE);
         }
     }
 
-    private void buildClass(StringBuilder builder, String className, Clazz.Visibility visibility, boolean isFinal, boolean isAbstract, Class extension) {
-        if (!(isFinal && isAbstract)) {
-            builder.append(visibility.toString()).append(' ');
-            builder.append(isFinal ? "final " : isAbstract ? "abstract " : "");
-            builder.append("class ").append(className);
-            if (extension != null) {
-                builder.append(" extends ");
-                builder.append(procUtil.getClassSimpleName(extension.toString()));
-            }
-        } else {
+    private void buildClass(StringBuilder builder, String className, ClazzReadable clazz) {
+        boolean isFinal = clazz.isFinal();
+        boolean isAbstract = clazz.isAbstract();
+        if (isFinal && isAbstract) {
             validator.addResult(ClazzImplManager.ClazzError.CANNOT_BE_ABSTRACT_AND_FINAL);
+            return;
+        }
+        Clazz.Visibility visibility = clazz.getVisibility();
+        Class extension = clazz.getExtension();
+
+        builder.append(visibility.toString()).append(' ');
+        builder.append(isFinal ? "final " : isAbstract ? "abstract " : "");
+        builder.append("class ").append(className).append(TYPE_PLACEHOLDER);
+        if (extension != null) {
+            builder.append(" extends ");
+            builder.append(procUtil.getClassSimpleName(extension.toString()));
         }
     }
 
@@ -69,22 +78,27 @@ public class ClassStarter {
         } else if (Clazz.Visibility.PRIVATE.equals(visibility)) {
             validator.addResult(ClazzImplManager.ClazzError.CANNOT_HAVE_PRIVATE_INTERFACE);
         }
-        builder.append("interface ").append(className);
+        builder.append("interface ").append(className).append(TYPE_PLACEHOLDER);
     }
 
     Set<JMethod> buildImplementations(StringBuilder builder, Clazz.ClassType classType, Set<Class> implementations) {
         Set<JMethod> methods = new HashSet<>();
+        String parametrization = "";
         if (!implementations.isEmpty()) {
             builder.append(Clazz.ClassType.CLASS.equals(classType) ? " implements " : " extends ");
             for (Class object : implementations) {
+                Matcher matcher = typedClass.matcher(object.toGenericString());
+                parametrization = matcher.find() ? matcher.group(1) : "";
+
                 builder.append(procUtil.dollarToDot(procUtil.getClassSimpleName(object.toString())));
-                builder.append(", ");
+                builder.append(parametrization).append(", ");
                 for (Method method : object.getDeclaredMethods()) {
                     methods.add(new JMethod(method));
                 }
             }
             trimComma(builder);
         }
+        createParametrization(builder, parametrization);
         return methods;
     }
 
@@ -92,6 +106,13 @@ public class ClassStarter {
         int length = builder.lastIndexOf(", ");
         if (length != -1) {
             builder.replace(length, length + 1, "");
+        }
+    }
+
+    void createParametrization(StringBuilder builder, String parametrization) {
+        int startIndex = builder.indexOf(TYPE_PLACEHOLDER);
+        if (startIndex > 0) {
+            builder.replace(startIndex, startIndex + TYPE_PLACEHOLDER.length(), parametrization);
         }
     }
 

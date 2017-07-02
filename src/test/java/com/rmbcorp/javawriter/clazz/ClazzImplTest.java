@@ -1,5 +1,6 @@
 package com.rmbcorp.javawriter.clazz;
 
+import com.rmbcorp.javawriter.SampleInterface;
 import com.rmbcorp.javawriter.processor.*;
 import com.rmbcorp.util.StringUtil;
 import org.junit.Before;
@@ -103,7 +104,7 @@ public class ClazzImplTest {
 
     @Test
     public void fieldNameValidationTest() {
-        setupClass(Collections.<Class>singletonList(Clazz.class));
+        setupClass(Collections.<Class>singletonList(SampleInterface.class));
         String output = clazzProcessor.writeOut(clazz);
         assertFalse(output.contains("private Class class"));
         assertTrue(output.contains("private Class clazz"));
@@ -133,7 +134,7 @@ public class ClazzImplTest {
     }
 
     @Test public void testParamSameTypeTest() {
-        setupClass(Collections.<Class>singletonList(ParamTest.class));
+        setupClass(Collections.<Class>singletonList(SampleInterface.class));
         Pattern pattern = Pattern.compile("String setFoo\\((.*)\\)");
         Matcher matcher = pattern.matcher(clazzProcessor.writeOut(clazz));
         if (matcher.find()) {
@@ -154,7 +155,7 @@ public class ClazzImplTest {
     }
 
     @Test public void insertIfIfBooleanParamTest() {
-        Clazz clazz = setupClass(Collections.<Class>singletonList(ParamTest.class));
+        Clazz clazz = setupClass(Collections.<Class>singletonList(SampleInterface.class));
         Pattern pattern = Pattern.compile("if\\s*\\(.*\\)");
         Matcher matcher = pattern.matcher(clazzProcessor.writeOut(clazz));
         assertTrue(matcher.find());
@@ -167,10 +168,4 @@ public class ClazzImplTest {
         assertFalse(output.contains("byte[] byte"));
     }
 
-    interface ParamTest {
-        @SuppressWarnings("unused")
-        String setFoo(String bar, String notbar, String reallyNotBar);
-        @SuppressWarnings("unused")
-        void doBar(boolean visible, boolean troubler);
-    }
 }

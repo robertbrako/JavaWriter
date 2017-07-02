@@ -15,8 +15,6 @@
 */
 package com.rmbcorp.javawriter.clazz;
 
-import com.rmbcorp.javawriter.clazz.Clazz;
-
 import java.lang.reflect.Method;
 
 public class JMethod {

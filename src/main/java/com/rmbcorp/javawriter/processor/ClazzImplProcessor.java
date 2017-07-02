@@ -9,6 +9,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**ClazzImplProcessor
  * Created by rmbdev on 10/1/2016.
@@ -121,7 +122,7 @@ final class ClazzImplProcessor implements ClazzProcessor {
 
     private void processMethods(Set<Class> imports, int lev, Set<JVariable> allVariables, JMethod jMethod) {
         Class<?> returnClass = jMethod.getReturnType();
-        List<String> returnTypeAndParams;
+        List<ProcUtil.JParam> returnTypeAndParams;
         String returnType, varName, methodName, methodParamType;
         Map<JVariable, Boolean> variables;
         methodName = jMethod.getName();
@@ -129,16 +130,24 @@ final class ClazzImplProcessor implements ClazzProcessor {
         if (jMethod.isOverride()) {
             builder.append(procUtil.tab(lev)).append("@Override").append(procUtil.ONE_LINE);
         }
-        ProcUtil.ReturnParams indexOfReturnType = procUtil.getReturnAndParams(jMethod);
-        returnType = indexOfReturnType.getReturnType();
-        returnTypeAndParams = indexOfReturnType.getParams();
+
+        ProcUtil.ReturnParams returnAndParams = procUtil.getReturnAndParams(jMethod);
+        returnType = returnAndParams.getReturnType();
+        if (returnType.startsWith("<")) {
+            returnType += " " + returnType.replaceAll("[<>]", "") + "[]";
+        }
+        returnTypeAndParams = returnAndParams.getParams();
         builder.append(procUtil.tab(lev)).append(procUtil.getScope(jMethod.getModifier()))
                 .append(returnType).append(' ')
                 .append(methodName).append('(');
         
-        methodParamType = getParamType(jMethod.toGenericString());
+        methodParamType = returnTypeAndParams.isEmpty() ? "" : getFirstTypeOnly(returnTypeAndParams);
         variables = getParams(returnTypeAndParams, methodName.startsWith("set"), imports);
-        allVariables.addAll(variables.keySet());
+        builder.append(")");
+        allVariables.addAll(variables.entrySet().stream()
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList()));
         builder.append(" {").append(procUtil.ONE_LINE);
         lev++;
         for (Map.Entry<JVariable, Boolean> entry : variables.entrySet()) {
@@ -148,48 +157,68 @@ final class ClazzImplProcessor implements ClazzProcessor {
             }
         }
         generateForLoopAndIfStatements(variables, methodParamType, lev);
-        if (!"void".equalsIgnoreCase(returnType)) {
-            builder.append(procUtil.tab(lev)).append("return ").append(conjureReturnObject(returnClass));
-        }
+        generateReturnStatement(lev, returnClass, returnType);
         imports.add(returnClass);
         lev--;
         builder.append(procUtil.tab(lev)).append("}").append(procUtil.TWO_LINES);
     }
 
-    private String conjureReturnObject(Class<?> returnClass) {
+    private String getFirstTypeOnly(List<ProcUtil.JParam> returnTypeAndParams) {
+        List<String> parametrizedTypes = returnTypeAndParams.get(0).types();
+        return parametrizedTypes.isEmpty() ? "" : parametrizedTypes.get(0);
+    }
+
+    private void generateReturnStatement(int lev, Class<?> returnClass, String returnType) {
+        if (!"void".equalsIgnoreCase(returnType)) {
+            String simpleName = returnClass.getSimpleName();
+            String returnText = returnClass.isPrimitive() ? returnPrimitive(simpleName) : returnObject(returnClass, returnType, simpleName);
+            builder.append(procUtil.tab(lev)).append("return ").append(returnText).append(procUtil.ONE_LINE);
+        }
+    }
+
+    private String returnPrimitive(String simpleName) {
         String returnText = "null;";
-        String simpleName = returnClass.getSimpleName();
-        if (returnClass.isPrimitive()) {
-            if (Arrays.asList("int", "long", "short", "float", "double", "byte").contains(simpleName)) {
-                returnText = "0;";
-            }
-            if ("boolean".equals(simpleName)) {
-                returnText = "false;";
-            }
-            if ("char".equals(simpleName)) {
-                returnText = "'\\0';";
-            }
-        } else {
-            if (returnClass.isInterface() || returnClass.getCanonicalName().contains("abstract")) {
-                returnText = "null;";
-            } else if (simpleName.contains("[]")) {
+        if (Arrays.asList("int", "long", "short", "float", "double", "byte").contains(simpleName)) {
+            returnText = "0;";
+        }
+        if ("boolean".equals(simpleName)) {
+            returnText = "false;";
+        }
+        if ("char".equals(simpleName)) {
+            returnText = "'\\0';";
+        }
+        return returnText;
+    }
+
+    private String returnObject(Class<?> returnClass, String returnType, String simpleName) {
+        String returnText = "null;";
+        if (!(returnClass.isInterface() || returnClass.getCanonicalName().contains("abstract")
+                || returnType.startsWith("<") || returnType.length() < 2)) {
+            if (simpleName.contains("[]")) {
                 returnText = "new " + simpleName + "{};";
             } else {
                 returnText = "new " + simpleName + "();";
             }
         }
-        return returnText + procUtil.ONE_LINE;
+        return returnText;
     }
 
-    private Map<JVariable, Boolean> getParams(List<String> parameterTypes, boolean makeSetter, Set<Class> imports) {
+    private Map<JVariable, Boolean> getParams(List<ProcUtil.JParam> parameterTypes, boolean makeSetter, Set<Class> imports) {
         Map<JVariable, Boolean> variables = new HashMap<>();
-        String param, simpleName;//param as String was like "java.lang.String" - get this from Class object instead.
+        ProcUtil.JParam param;//param as String was like "java.lang.String" - get this from Class object instead.
+        String simpleName;
         Map<Integer, Integer> paramCounts = new HashMap<>();
         int typeCount;
         for (int i = 0, parameterTypesLength = parameterTypes.size(); i < parameterTypesLength; i++) {
             param = parameterTypes.get(i);
-            simpleName = procUtil.getClassSimpleName(procUtil.dollarToDot(param));
+            simpleName = procUtil.getClassSimpleName(procUtil.dollarToDot(param.getParamType()));
             builder.append(simpleName);
+            if (!param.types().isEmpty()) {
+                builder.append("<");
+                String parametrizedTypes = param.types().stream().collect(Collectors.joining(","));
+                builder.append(parametrizedTypes);
+                builder.append(">");
+            }
             builder.append(" ");
 
             String trimmedParam = cleanParamString(simpleName);
@@ -206,28 +235,24 @@ final class ClazzImplProcessor implements ClazzProcessor {
                 builder.append(", ");
             }
             variables.put(new JVariable(varName, simpleName), makeSetter);
-            resolveParamImports(imports, param, simpleName, trimmedParam);
+            resolveParamImports(imports, param.getParamType(), simpleName, trimmedParam);
         }
-        builder.append(")");
         return variables;
     }
 
     private void resolveParamImports(Set<Class> imports, String param, String simpleName, String trimmedParam) {
-        boolean found = false;
-        if (!param.equals(simpleName)) {
-            for (Class clazz : imports) {//future: make more efficient
-                if (clazz.getSimpleName().contains(trimmedParam)) {
-                    found = true;
-                }
-            }
-            if (!found) {
-                try {
-                    imports.add(Class.forName(cleanParamString(param)));
-                } catch (ClassNotFoundException ignored) {
-                    Logger.getGlobal().log(Level.INFO, ignored.getLocalizedMessage(), ignored);
-                    validator.addResult(ClazzError.INVALID_CLASS_NAME);
-                }
-            }
+        if (!param.equals(simpleName) &&
+                imports.stream().noneMatch(clazz -> clazz.getSimpleName().contains(trimmedParam))) {
+            insertImport(imports, param);
+        }
+    }
+
+    private void insertImport(Set<Class> imports, String param) {
+        try {
+            imports.add(Class.forName(cleanParamString(param)));
+        } catch (ClassNotFoundException ignored) {
+            Logger.getGlobal().log(Level.INFO, ignored.getLocalizedMessage(), ignored);
+            validator.addResult(ClazzError.INVALID_CLASS_NAME);
         }
     }
 
@@ -251,22 +276,12 @@ final class ClazzImplProcessor implements ClazzProcessor {
                 builder.append(procUtil.tab(tabLev)).append("}").append(procUtil.ONE_LINE);
             } else if ("boolean".equalsIgnoreCase(iterable)) {
                 String param = jVariable.getName();
-                generateIfStatement(2, param, EMPTY_BODY); //caution, multiple boolean params will cause problem; hard-coded tab-lev
+                generateIfStatement(tabLev, param, EMPTY_BODY);
             }
         }
         if (useEmptyBody) {
             builder.append(procUtil.tab(tabLev)).append(EMPTY_BODY).append(procUtil.ONE_LINE);
         }
-    }
-
-    private String getParamType(String method) {
-        int beginIndex = method.indexOf('<');
-        int endIndex = method.lastIndexOf('>');
-        if (beginIndex > -1) {
-            String[] className = method.substring(beginIndex+1, endIndex).split("\\.");
-            return className[className.length-1];
-        }
-        return "";
     }
 
     private void buildVariables(Set<JVariable> variables, int tabLevel) {

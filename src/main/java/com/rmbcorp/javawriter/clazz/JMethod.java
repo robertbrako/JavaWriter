@@ -16,6 +16,8 @@
 package com.rmbcorp.javawriter.clazz;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class JMethod {
 
@@ -40,12 +42,9 @@ public class JMethod {
     }
 
     private String getParams(Class<?>[] params) {
-        String result = "";
-        for (int i = 0; i < params.length; i++) {
-            String comma = i == params.length - 1 ? "" : ",";
-            result += params[i].getCanonicalName() + comma;
-        }
-        return result;
+        return Arrays.<Class>asList(params).stream()
+                .map(Class::getCanonicalName)
+                .collect(Collectors.joining(","));
     }
 
     public String getName() {

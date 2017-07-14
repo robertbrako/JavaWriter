@@ -132,7 +132,7 @@ public class ProcUtil {
                 newParam.add(getClassSimpleName(item));
             }
         } else {
-            newParam = new JParam(param);
+            newParam = new JParam(param.replace("...", "[]"));
         }
         return newParam;
     }

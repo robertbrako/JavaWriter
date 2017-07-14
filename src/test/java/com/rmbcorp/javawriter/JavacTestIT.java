@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
+import static com.rmbcorp.javawriter.autojavac.JavaCompiler.*;
 import static org.junit.Assert.*;
 
 /**
@@ -30,7 +31,6 @@ public class JavacTestIT {
     private static final String RELATIVE_PATH = "src/test/gen";
     private static final String EXT = ".java";
     private static final String BIN_PATH = "src/test/bin";
-    public static final String SL = "/";
 
     private File testFile;
 
@@ -108,7 +108,7 @@ public class JavacTestIT {
 
         BuildJob buildJob = new JavacJob(FILE_NAME, RELATIVE_PATH);
         buildJob.setBinPath(BIN_PATH);
-        buildJob.setClassPath(getPwd() + "target\\classes\"");
+        buildJob.setClassPath(QT + getPwd() + "target" + SL + "classes" + QT);
         buildJob.setFileContents(clazzProcessor.writeOut(clazz));
         compile(buildJob);
 
@@ -131,7 +131,7 @@ public class JavacTestIT {
 
         BuildJob buildJob = new JavacJob(FILE_NAME, RELATIVE_PATH);
         buildJob.setBinPath(BIN_PATH);
-        buildJob.setClassPath(getPwd() + "target\\classes\"");
+        buildJob.setClassPath(QT + getPwd() + "target" + SL + "classes" + QT);
         buildJob.setFileContents(clazzProcessor.writeOut(clazz));
         compile(buildJob);
 
@@ -142,7 +142,7 @@ public class JavacTestIT {
 
     private String getPwd() {
         String pwd = System.getenv().get("PWD");
-        return pwd == null ? "\"" : "\"" + pwd + "\\";
+        return pwd == null ? "" : pwd + SL;
     }
 
     @After public void cleanup() {

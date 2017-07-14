@@ -26,16 +26,30 @@ import java.util.List;
 
 public class JavaCompiler implements Compiler {
 
+    private static final String OS_NAME = "os.name";
+    public static final String SL = System.getProperty(OS_NAME).toLowerCase().contains("win") ? "\\" : "/";
+    public static final String QT = System.getProperty(OS_NAME).toLowerCase().contains("win") ? "\"" : "";
+    private static final String WIN_JAVA = "C:\\Program Files\\Java\\jdk1.8.0_121\\bin\\";
+    private static final String UNIX_JAVA = "/opt/jdk1.8.0_111/bin/";
+
     private final TempLogger logger;
     private List<JavacParams> javacParams;
+    private final String javaHome;
 
     public JavaCompiler(TempLogger logger) {
         this.logger = logger;
         javacParams = new ArrayList<>();
+        javaHome = setJavaHome();
+    }
+
+    private String setJavaHome() {
+        String home = System.getenv("JAVA_HOME");
+        return home != null ? home + SL + "bin" + SL :
+                System.getProperty(OS_NAME).toLowerCase().contains("win") ? WIN_JAVA : UNIX_JAVA;
     }
 
     @Override
-    public void compile(BuildJob javacJob) throws AutoJavacException {
+    public CompileResult compile(BuildJob javacJob) throws AutoJavacException {
         if (StringUtil.isEmpty(javacJob.getFileName())) {
             throw new AutoJavacException(AutoJavacException.EMPTY_FILENAME);
         }
@@ -43,7 +57,8 @@ public class JavaCompiler implements Compiler {
             mkdirs(javacJob.getRelativePath());
             mkdirs(javacJob.getBinPath());
             createFile(javacJob);
-            spawnJavac(javacJob);
+            List<CompileError> compileErrors = spawnJavac(javacJob);
+            return saveErrors(javacJob, compileErrors);
         } catch (InterruptedException | IOException e) {
             throw new AutoJavacException(e);
         }
@@ -56,7 +71,7 @@ public class JavaCompiler implements Compiler {
 
     private void createFile(BuildJob javacJob) throws IOException {
         if (!javacParams.contains(JavacParams.NO_CREATE_SRC_FILES)) {
-            File f = new File(getValidPath(javacJob.getRelativePath()) + javacJob.getFileName() + ".java");
+            File f = new File(getValidPath(javacJob.getRelativePath()) + dotJava(javacJob.getFileName()));
             FileOutputStream fos = new FileOutputStream(f);
             fos.write(javacJob.getFileContents().getBytes());
             fos.close();
@@ -68,12 +83,13 @@ public class JavaCompiler implements Compiler {
                 relativePath.endsWith("/") ? relativePath : relativePath + "/";
     }
 
-    private void spawnJavac(BuildJob javacJob) throws IOException, InterruptedException {
-        String command = "javac " +
+    private List<CompileError> spawnJavac(BuildJob javacJob) throws IOException, InterruptedException {
+        CompileErrorBuilder errorBuilder = new CompileErrorBuilder();
+        String command = javaHome + "javac " +
                 getValidCmdArg("-classpath ", javacJob.getClassPath()) +
                 getValidCmdArg(" -d ", javacJob.getBinPath()) + " " +
                 getValidPath(javacJob.getRelativePath()) +
-                javacJob.getFileName() + ".java";
+                dotJava(javacJob.getFileName());
         logger.logPlain("[info]Executing: " + command);
 
         Runtime runtime = Runtime.getRuntime();
@@ -86,20 +102,56 @@ public class JavaCompiler implements Compiler {
             String line;
             while ( (line = ber.readLine()) != null) {
                 logger.logPlain("[error]" + line);
+                errorBuilder.acceptError(line, javacJob.getRelativePath());
             }
             while ( (line = bis.readLine()) != null) {
                 logger.logPlain("[debug]" + line);
             }
             logger.logPlain("[info]" + (proc.waitFor() == 0 ? "javac success" : "javac failure"));
         }
+        return errorBuilder.getCompileErrors();
     }
 
     private String getValidCmdArg(String arg, String classPath) {
         return StringUtil.isEmpty(classPath) ? "" : arg + classPath;
     }
 
+    private String dotJava(String fileName) {
+        return fileName.endsWith(".java") ? fileName : fileName.concat(".java");
+    }
+
+    private CompileResult saveErrors(BuildJob buildJob, List<CompileError> compileErrors) {
+        CompileResult compileResult = new CompileResult(compileErrors);
+        if (!javacParams.contains(JavacParams.NO_SAVE_ERRORS)) {
+            compileResult.setClassName(buildJob.getFileName());
+        }
+        return compileResult;
+    }
+
     @Override
     public void setParams(JavacParams... javacParams) {
         Collections.addAll(this.javacParams, javacParams);
+    }
+
+    class CompileResult {
+
+        private String className = "";
+        private List<CompileError> compileErrors;
+
+        CompileResult(List<CompileError> errors) {
+            compileErrors = errors;
+        }
+
+        String getClassName() {
+            return className;
+        }
+
+        void setClassName(String className) {
+            this.className = className;
+        }
+
+        List<CompileError> getCompileErrors() {
+            return compileErrors;
+        }
     }
 }

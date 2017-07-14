@@ -97,7 +97,7 @@ class JavaWriter {
 
     private static String getFilename() {
         String filename;
-        logger.logPlain("filename? (omit .java please; it will be added): ");
+        logger.logPlain("filename? : ");
         try (BufferedReader bin = new BufferedReader(new InputStreamReader(System.in)) ) {
             filename = bin.readLine();
         } catch (IOException e) {

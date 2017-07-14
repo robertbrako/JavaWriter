@@ -15,6 +15,29 @@
 */
 package com.rmbcorp.javawriter.autojavac;
 
-public enum  JavacParams {
-    NO_CREATE_SRC_FILES, NO_SAVE_ERRORS
+import java.util.ArrayList;
+import java.util.List;
+
+class CompileErrorBuilder {
+
+    private List<CompileError> compileErrors = new ArrayList<>();
+    private List<String> errorCache = new ArrayList<>(3);
+
+    CompileErrorBuilder() { }
+
+    void acceptError(String line, String relativePath) {
+        if (normalize(line).startsWith(normalize(relativePath)) && errorCache.size() > 0) {
+            compileErrors.add(new CompileError(errorCache));
+            errorCache.clear();
+        }
+        errorCache.add(line);
+    }
+
+    private String normalize(String line) {
+        return line.replaceAll("\\\\", "/");
+    }
+
+    List<CompileError> getCompileErrors() {
+        return compileErrors;
+    }
 }

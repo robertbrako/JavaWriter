@@ -83,12 +83,12 @@
     </build>
     <distributionManagement>
         <snapshotRepository>
-            <id>nexus</id>
+            <id>rmbCentral</id>
             <name>nexus-snapshots</name>
             <url>${nexus.url}:${nexus.port}/repository/maven-snapshots</url>
         </snapshotRepository>
         <repository>
-            <id>nexus</id>
+            <id>rmbCentral</id>
             <name>nexus-releases</name>
             <url>${nexus.url}:${nexus.port}/repository/maven-releases</url>
         </repository>

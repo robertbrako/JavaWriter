@@ -19,7 +19,7 @@ import com.rmbcorp.javawriter.BuildJob;
 
 public interface Compiler {
 
-    void compile(BuildJob buildJob) throws AutoJavacException;
+    JavaCompiler.CompileResult compile(BuildJob buildJob) throws AutoJavacException;
 
     void setParams(JavacParams... params);
 }

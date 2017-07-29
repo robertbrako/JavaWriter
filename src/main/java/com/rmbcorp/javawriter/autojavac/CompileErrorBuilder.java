@@ -26,7 +26,7 @@ class CompileErrorBuilder {
     CompileErrorBuilder() { }
 
     void acceptError(String line, String relativePath) {
-        if (normalize(line).startsWith(normalize(relativePath)) && errorCache.size() > 0) {
+        if (normalize(line).startsWith(normalize(relativePath)) && !errorCache.isEmpty()) {
             compileErrors.add(new CompileError(errorCache));
             errorCache.clear();
         }

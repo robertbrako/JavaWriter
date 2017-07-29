@@ -15,18 +15,20 @@
 */
 package com.rmbcorp.javawriter.processor;
 
+import com.rmbcorp.javawriter.clazz.ClazzReadable;
+
 public class ProcessorProvider {
 
     private ProcessorProvider() { }
 
-    public static ClazzProcessor getBeanProcessor() {
+    public static ClazzProcessor<ClazzReadable> getBeanProcessor() {
         ClazzValidator validator = new ClazzValidator();
         ProcUtil procUtil = new ProcUtil();
         ClassStarter classStarter = new ClassStarter(validator, procUtil);
         return new BeanProcessor(validator, classStarter, procUtil);
     }
 
-    public static ClazzProcessor getClazzProcessor() {
+    public static ClazzProcessor<ClazzReadable> getClazzProcessor() {
         ClazzValidator validator = new ClazzValidator();
         ProcUtil procUtil = new ProcUtil();
         ClassStarter classStarter = new ClassStarter(validator, procUtil);

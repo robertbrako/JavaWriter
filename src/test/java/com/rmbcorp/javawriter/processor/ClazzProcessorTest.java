@@ -24,25 +24,21 @@ import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError.MUST_BE_CLASS_OR_INTERFACE;
+import static com.rmbcorp.javawriter.clazz.ClazzError.MUST_BE_CLASS_OR_INTERFACE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ClazzProcessorTest {
 
-    public static final String COM_RMBCORP_JAVAWRITER = "com.rmbcorp.javawriter";
+    private static final String COM_RMBCORP_JAVAWRITER = "com.rmbcorp.javawriter";
 
-    private ClazzProcessor clazzProcessor;
-    private Clazz clazz;
+    private ClazzProcessor<ClazzReadable> clazzProcessor;
+    private ClazzImpl clazz;
 
     @Before
     public void setUp() throws Exception {
         clazzProcessor = ProcessorProvider.getBeanProcessor();
-        clazz = getClazzImpl(COM_RMBCORP_JAVAWRITER);
-    }
-
-    private Clazz getClazzImpl(String comRmbcorpJavawriter) {
-        return ClazzImplManager.getInstance().get(comRmbcorpJavawriter, "ClazzImpl2");
+        clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER, "ClazzImpl2");
     }
 
     @Test
@@ -101,15 +97,15 @@ public class ClazzProcessorTest {
 
     @Test
     public void beanProcessorDoesNotCurrentlyStubImplementations() {
-        clazz.addImplementations(Collections.<Class>singletonList(ClazzReadable.class));
+        clazz.addImplementations(Collections.singletonList(ClazzReadable.class));
         String output = clazzProcessor.writeOut(clazz);
         assertFalse(output.contains("getPackagePath"));
     }
 
     @Test
     public void paramTest() {
-        ClazzProcessor clazzProcessor = ProcessorProvider.getClazzProcessor();
-        clazz = getClazzImpl(COM_RMBCORP_JAVAWRITER + ".processor");
+        ClazzProcessor<ClazzReadable> clazzProcessor = ProcessorProvider.getClazzProcessor();
+        clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER + ".processor", "ClazzImpl2");
         clazz.addImplementations(Collections.singletonList(SampleInterface.class));
         String out = clazzProcessor.writeOut(clazz);
         assertTrue(out.contains("typedParam(List<String> "));

@@ -1,5 +1,6 @@
 package com.rmbcorp.javawriter;
 
+import com.rmbcorp.javawriter.clazz.ClazzImpl;
 import com.rmbcorp.javawriter.processor.ClazzProcessor;
 import com.rmbcorp.javawriter.processor.ProcUtil;
 import com.rmbcorp.javawriter.processor.ProcessorProvider;
@@ -10,7 +11,6 @@ import com.rmbcorp.javawriter.autojavac.Compiler;
 import com.rmbcorp.javawriter.autojavac.JavaCompiler;
 import com.rmbcorp.javawriter.clazz.Clazz;
 import com.rmbcorp.javawriter.clazz.Clazz.Visibility;
-import com.rmbcorp.javawriter.clazz.ClazzImplManager;
 import com.rmbcorp.javawriter.logman.LoggerManager;
 import com.rmbcorp.javawriter.logman.TempLogger;
 
@@ -53,7 +53,6 @@ class JavaWriter {
     private static TempLogger logger;
     private static Compiler compiler;
     private static ClazzProcessor clazzProcessor;
-    private static ClazzImplManager clazzManager;
     private static ArgParser argParser;
     private static boolean debugEnv = false;
     private static boolean useSout;
@@ -66,7 +65,6 @@ class JavaWriter {
         useSout = Boolean.parseBoolean(jwOptions.get(JWOpts.USESOUT));
         logger = new LoggerManager(useSout);
         compiler = new JavaCompiler(logger);
-        clazzManager = ClazzImplManager.getInstance();
         clazzProcessor = ProcessorProvider.getClazzProcessor();
 
         JavacJob buildJob = getJavacJob(jwOptions, javacOptsMap);
@@ -90,7 +88,7 @@ class JavaWriter {
         logger.logPlain("[info]Filename:" + filename);
         buildJob.setFileName(filename);
         jwOptions.put(JWOpts.FILENAME, filename);
-        Clazz clazz = getClazz(clazzManager, jwOptions);
+        Clazz clazz = getClazz(jwOptions);
         buildJob.setFileContents(clazzProcessor.writeOut(clazz));
         return buildJob;
     }
@@ -107,8 +105,8 @@ class JavaWriter {
         return filename;
     }
 
-    private static Clazz getClazz(ClazzImplManager clazzManager, Map<JWOpts, String> jwOptions) {
-        Clazz clazz = clazzManager.get(jwOptions.get(JWOpts.PACKAGE), jwOptions.get(JWOpts.FILENAME));
+    private static Clazz getClazz(Map<JWOpts, String> jwOptions) {
+        Clazz clazz = new ClazzImpl(jwOptions.get(JWOpts.PACKAGE), jwOptions.get(JWOpts.FILENAME));
         clazz.setClassType(Clazz.ClassType.valueOf(jwOptions.get(JWOpts.CLASSTYPE).toUpperCase()));
         try {
             clazz.setVisibility(Visibility.valueOf(jwOptions.get(JWOpts.VISIBILITY).toUpperCase()));

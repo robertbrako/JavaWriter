@@ -1,7 +1,7 @@
 package com.rmbcorp.javawriter.processor;
 
 import com.rmbcorp.javawriter.clazz.*;
-import com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError;
+import com.rmbcorp.javawriter.clazz.ClazzError;
 import com.rmbcorp.util.StringUtil;
 import com.rmbcorp.util.ValidationManager;
 
@@ -14,9 +14,9 @@ import java.util.stream.Collectors;
 /**ClazzImplProcessor
  * Created by rmbdev on 10/1/2016.
  */
-final class ClazzImplProcessor implements ClazzProcessor {
+final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
 
-    static final String EMPTY_BODY = "//empty";
+    private static final String EMPTY_BODY = "//empty";
 
     private StringBuilder builder;
     private ValidationManager<ClazzError> validator;
@@ -36,36 +36,27 @@ final class ClazzImplProcessor implements ClazzProcessor {
     }
 
     @Override
-    public String writeOut(Clazz clazz) {
+    public String writeOut(ClazzReadable clazz) {
         errorCache = "";
         validator.removeAllResults();
-        if (clazz instanceof ClazzReadable) {
-            String out = writeOut((ClazzReadable) clazz);
-            if (validator.hasErrors()) {
-                errorCache = ((ClazzValidator)validator).getErrorsAsCSV();
-
-            }
-            return out;
+        String out = doWriteOut(clazz);
+        if (validator.hasErrors()) {
+            errorCache = ((ClazzValidator)validator).getErrorsAsCSV();
         }
-        else return "";
+        return out;
     }
 
-    String writeOut(ClazzReadable clazz) {
+    private String doWriteOut(ClazzReadable clazz) {
         builder = new StringBuilder("");
-        setupImports(clazz.getImports(), clazz.getExtension(), clazz.getImplementations());
+        classStarter.buildHeader(clazz.getPackagePath(), builder);
+        Set<Class> allImports = clazz.getImports();
+        setupImports(allImports, clazz.getExtension(), clazz.getImplementations());
         buildClassOrInterface(clazz.getClassType(), clazz);
-        buildBody(clazz.getExtension(), clazz.getImplementations(), clazz.getImports(), clazz.getMethods());
+        buildBody(clazz.getExtension(), clazz.getImplementations(), allImports, clazz.getMethods());
         closeBody();
-        buildImports(clazz.getImports());
-        buildPackage(clazz.getPackagePath());
+        classStarter.buildImports(allImports, builder);
 
         return validator.hasErrors() ? "" : builder.toString();
-    }
-
-    private void buildPackage(String packagePath) {
-        if (!StringUtil.isEmpty(packagePath)) {
-            builder.insert(0, "package " + packagePath + ';' + procUtil.ONE_LINE + procUtil.ONE_LINE);
-        }
     }
 
     private void setupImports(Set<Class> imports, Class extension, Set<Class> implementations) {
@@ -73,26 +64,6 @@ final class ClazzImplProcessor implements ClazzProcessor {
             imports.add(extension);
         }
         imports.addAll(implementations);
-    }
-
-    private void buildImports(Set<Class> imports) {
-        builder.insert(0, procUtil.IMPORT_PLACEHOLDER);
-        int start = builder.length();
-        for (Class object : imports) {
-            String importName = splitClassString(object);
-            if (importName.equals(JavaKeywords.replaceJavaKeyword(importName)) && !"void".equals(importName) && !importName.startsWith("[L")) {
-                builder.append("import ").append(procUtil.dollarToDot(splitClassString(object))).append(';');
-                builder.append(procUtil.ONE_LINE);
-            }
-        }
-        builder.append(procUtil.ONE_LINE);
-        String substring = builder.substring(start, builder.length());
-        builder.replace(start, builder.length(), "");
-        builder.replace(0, procUtil.IMPORT_PLACEHOLDER.length(), substring);
-    }
-
-    private String splitClassString(Object object) {
-        return object.toString().replaceFirst("class ", "").replaceFirst("interface ", "");
     }
 
     private void buildClassOrInterface(Clazz.ClassType classType, ClazzReadable clazz) {

@@ -17,6 +17,7 @@ package com.rmbcorp.javawriter.clazz;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class JMethod {
@@ -26,11 +27,16 @@ public class JMethod {
     private Class<?> returnType;
     private int modifier;
     private String asGenericString;
+    private List<Class<?>> params;
 
 
     public JMethod(Method method) {
         this.method = method;
-        this.name = method.getName();
+        name = method.getName();
+        returnType = method.getReturnType();
+        modifier = method.getModifiers();
+        asGenericString = method.toGenericString();
+        params = Arrays.asList(method.getParameterTypes());
     }
 
     public JMethod(String name, Class<?> returnType, Clazz.Visibility visibility, String packageName, Class<?>... params) {
@@ -39,6 +45,7 @@ public class JMethod {
         this.returnType = returnType;
         this.modifier = visibility.getModifier();
         this.asGenericString = visibility + " " + returnType.getCanonicalName() + " " + packageName + "." + name + String.format("(%s)", getParams(params));
+        this.params = Arrays.asList(params);
     }
 
     private String getParams(Class<?>[] params) {
@@ -48,19 +55,19 @@ public class JMethod {
     }
 
     public String getName() {
-        return method != null ? method.getName() : name;
+        return name;
     }
 
     public Class<?> getReturnType() {
-        return method != null ? method.getReturnType() : returnType;
+        return returnType;
     }
 
     public int getModifier() {
-        return method != null ? method.getModifiers() : modifier;
+        return modifier;
     }
 
     public String toGenericString() {
-        return method != null ? method.toGenericString() : asGenericString;
+        return asGenericString;
     }
 
     public boolean isOverride() {
@@ -74,7 +81,7 @@ public class JMethod {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof JMethod && name.equals(((JMethod) obj).name);
+        return obj instanceof JMethod && name.equals(((JMethod) obj).name) && params.size() == ((JMethod)obj).params.size();
     }
 
     @Override

@@ -3,10 +3,7 @@ package com.rmbcorp.javawriter;
 import com.rmbcorp.javawriter.autojavac.AutoJavacException;
 import com.rmbcorp.javawriter.autojavac.JavaCompiler;
 import com.rmbcorp.javawriter.autojavac.JavacParams;
-import com.rmbcorp.javawriter.clazz.Clazz;
-import com.rmbcorp.javawriter.clazz.ClazzImplManager;
-import com.rmbcorp.javawriter.clazz.ClazzReadable;
-import com.rmbcorp.javawriter.clazz.JVariable;
+import com.rmbcorp.javawriter.clazz.*;
 import com.rmbcorp.javawriter.logman.LoggerManager;
 import com.rmbcorp.javawriter.logman.TempLogger;
 import com.rmbcorp.javawriter.processor.ClazzProcessor;
@@ -101,15 +98,11 @@ public class JavacTestIT {
 
     @Test public void fullCompileTest() {
         testFile = new File(getNormalPathname());
-        ClazzImplManager clazzImplManager = ClazzImplManager.getInstance();
-        ClazzProcessor clazzProcessor = ProcessorProvider.getClazzProcessor();
-        Clazz clazz = clazzImplManager.get("", FILE_NAME);
-        clazz.addImplementations(Collections.<Class>singletonList(List.class));
+        ClazzProcessor<ClazzReadable> clazzProcessor = ProcessorProvider.getClazzProcessor();
+        ClazzImpl clazz = new ClazzImpl("", FILE_NAME);
+        clazz.addImplementations(Collections.singletonList(List.class));
 
-        BuildJob buildJob = new JavacJob(FILE_NAME, RELATIVE_PATH);
-        buildJob.setBinPath(BIN_PATH);
-        buildJob.setClassPath(QT + getPwd() + "target" + SL + "classes" + QT);
-        buildJob.setFileContents(clazzProcessor.writeOut(clazz));
+        BuildJob buildJob = getBuildJob(clazzProcessor, clazz);
         compile(buildJob);
 
         File binary = new File(BIN_PATH + SL + FILE_NAME + ".class");
@@ -117,11 +110,19 @@ public class JavacTestIT {
         binary.delete();
     }
 
+    private <T> BuildJob getBuildJob(ClazzProcessor<T> clazzProcessor, T clazz) {
+        BuildJob buildJob = new JavacJob(FILE_NAME, RELATIVE_PATH);
+        buildJob.setBinPath(BIN_PATH);
+        buildJob.setClassPath(QT + getPwd() + "target" + SL + "classes" + QT);
+        buildJob.setFileContents(clazzProcessor.writeOut(clazz));
+        return buildJob;
+    }
+
     @Test public void beanCompileTest() {
         testFile = new File(getNormalPathname());
-        ClazzProcessor clazzProcessor = ProcessorProvider.getBeanProcessor();
-        Clazz clazz = ClazzImplManager.getInstance().get("", FILE_NAME);
-        clazz.addImplementations(Collections.<Class>singletonList(ClazzReadable.class));
+        ClazzProcessor<ClazzReadable> clazzProcessor = ProcessorProvider.getBeanProcessor();
+        ClazzImpl clazz = new ClazzImpl("", FILE_NAME);
+        clazz.addImplementations(Collections.singletonList(ClazzReadable.class));
         clazz.addBeanVariable(new JVariable("accountid", Long.class));
         clazz.addBeanVariable(new JVariable("userid", Integer.class));
         clazz.addBeanVariable(new JVariable("firstname", String.class));
@@ -129,10 +130,7 @@ public class JavacTestIT {
         clazz.addBeanVariable(new JVariable("updatedon", LocalDateTime.class));
         clazz.addBeanVariable(new JVariable("updatedby", String.class));
 
-        BuildJob buildJob = new JavacJob(FILE_NAME, RELATIVE_PATH);
-        buildJob.setBinPath(BIN_PATH);
-        buildJob.setClassPath(QT + getPwd() + "target" + SL + "classes" + QT);
-        buildJob.setFileContents(clazzProcessor.writeOut(clazz));
+        BuildJob buildJob = getBuildJob(clazzProcessor, clazz);
         compile(buildJob);
 
         File binary = new File(BIN_PATH + SL + FILE_NAME + ".class");

@@ -1,9 +1,7 @@
 package com.rmbcorp.javawriter.autojavac;
 
 import com.rmbcorp.javawriter.BuildJob;
-import com.rmbcorp.javawriter.clazz.Clazz;
-import com.rmbcorp.javawriter.clazz.ClazzImplManager;
-import com.rmbcorp.javawriter.clazz.JVariable;
+import com.rmbcorp.javawriter.clazz.*;
 import com.rmbcorp.javawriter.logman.LoggerManager;
 import com.rmbcorp.javawriter.processor.ClazzProcessor;
 import com.rmbcorp.javawriter.processor.ProcessorProvider;
@@ -22,8 +20,8 @@ public class JavaCompilerTestIT {
 
     private static final String RELATIVE_PATH = "src/test/gen";
 
-    private JavaCompiler javaCompiler;
-    private ClazzProcessor processorProvider;
+    private Compiler javaCompiler;
+    private ClazzProcessor<ClazzReadable> processorProvider;
     private List<File> testFiles = new ArrayList<>();
 
     @Before
@@ -39,16 +37,16 @@ public class JavaCompilerTestIT {
         testFiles.add(new File(RELATIVE_PATH, fileName + ".class"));
 
         BuildJob job = BuildJob.get(fileName, RELATIVE_PATH);
-        Clazz clazz = ClazzImplManager.getInstance().get("", fileName);
+        ClazzImpl clazz = new ClazzImpl("", fileName);
         clazz.addBeanVariable(new JVariable("classId", String.class));
         String fileContents = processorProvider.writeOut(clazz);
-        assertTrue(processorProvider.hasError(ClazzImplManager.ClazzError.INVALID_CLASS_NAME));
+        assertTrue(processorProvider.hasError(ClazzError.INVALID_CLASS_NAME));
 
         job.setFileContents(fileContents);
         job.setBinPath("src/test/bin");
 
         javaCompiler.setParams(JavacParams.NO_SAVE_ERRORS);
-        JavaCompiler.CompileResult compileResult = javaCompiler.compile(job);
+        CompileResult compileResult = javaCompiler.compile(job);
         String firstError = compileResult.getCompileErrors().stream()
                 .map(CompileError::getReason).findFirst().get();
 

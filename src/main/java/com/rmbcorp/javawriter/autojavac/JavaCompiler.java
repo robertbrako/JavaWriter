@@ -72,9 +72,9 @@ public class JavaCompiler implements Compiler {
     private void createFile(BuildJob javacJob) throws IOException {
         if (!javacParams.contains(JavacParams.NO_CREATE_SRC_FILES)) {
             File f = new File(getValidPath(javacJob.getRelativePath()) + dotJava(javacJob.getFileName()));
-            FileOutputStream fos = new FileOutputStream(f);
-            fos.write(javacJob.getFileContents().getBytes());
-            fos.close();
+            try (FileOutputStream fos = new FileOutputStream(f)) {
+                fos.write(javacJob.getFileContents().getBytes());
+            }
         }
     }
 
@@ -133,25 +133,4 @@ public class JavaCompiler implements Compiler {
         Collections.addAll(this.javacParams, javacParams);
     }
 
-    class CompileResult {
-
-        private String className = "";
-        private List<CompileError> compileErrors;
-
-        CompileResult(List<CompileError> errors) {
-            compileErrors = errors;
-        }
-
-        String getClassName() {
-            return className;
-        }
-
-        void setClassName(String className) {
-            this.className = className;
-        }
-
-        List<CompileError> getCompileErrors() {
-            return compileErrors;
-        }
-    }
 }

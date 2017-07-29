@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError;
+import com.rmbcorp.javawriter.clazz.ClazzError;
 
 /**ClazzValidator
  * Created by rmbdev on 10/1/2016.

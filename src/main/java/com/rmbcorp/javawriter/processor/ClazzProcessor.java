@@ -15,13 +15,12 @@
 */
 package com.rmbcorp.javawriter.processor;
 
-import com.rmbcorp.javawriter.clazz.Clazz;
-import com.rmbcorp.javawriter.clazz.ClazzImplManager;
+import com.rmbcorp.javawriter.clazz.ClazzError;
 
-public interface ClazzProcessor {
+public interface ClazzProcessor<T> {
 
-    boolean hasError(ClazzImplManager.ClazzError error);
+    boolean hasError(ClazzError error);
 
-    String writeOut(Clazz clazz);
+    String writeOut(T clazz);
 
 }

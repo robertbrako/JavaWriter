@@ -6,8 +6,9 @@ import java.util.Set;
 
 /**Homebrew wrapper for classes
  * Created by rmbdev on 8/11/2016.
+ * Warning: This is only a default implementation of the interfaces.
  */
-class ClazzImpl implements Clazz, ClazzReadable {
+public class ClazzImpl implements Clazz, ClazzReadable {
 
     private final String packagePath;
     private final Set<Class> imports = new HashSet<>();
@@ -22,11 +23,11 @@ class ClazzImpl implements Clazz, ClazzReadable {
     private final Set<JVariable> variables = new HashSet<>();
 
 
-    ClazzImpl(String packagePath, String className) {
+    public ClazzImpl(String packagePath, String className) {
         this(packagePath, className, ClassType.CLASS);
     }
 
-    ClazzImpl(String packagePath, String className, ClassType classType) {
+    private ClazzImpl(String packagePath, String className, ClassType classType) {
         this.packagePath = packagePath;
         this.className = className;
         this.classType = classType;

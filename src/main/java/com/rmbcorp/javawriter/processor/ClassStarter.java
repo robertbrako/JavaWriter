@@ -24,14 +24,14 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ClassStarter {
+class ClassStarter {
 
     private static final String TYPE_PLACEHOLDER = "%%TYPE%%";
     private static final Pattern typedClass = Pattern.compile("\\w+(<.*>)");
     private final ClazzValidator validator;
     private final ProcUtil procUtil;
 
-    public ClassStarter(ClazzValidator validator, ProcUtil procUtil) {
+    ClassStarter(ClazzValidator validator, ProcUtil procUtil) {
         this.validator = validator;
         this.procUtil = procUtil;
     }
@@ -39,17 +39,17 @@ public class ClassStarter {
     void buildClassOrInterface(StringBuilder builder, Clazz.ClassType classType, ClazzReadable clazz) {
         String className = clazz.getClassName();
         if (StringUtil.isEmpty(className)) {
-            validator.addResult(ClazzImplManager.ClazzError.CANNOT_HAVE_EMPTY_CLASS_NAME);
+            validator.addResult(ClazzError.CANNOT_HAVE_EMPTY_CLASS_NAME);
         }
         if (!className.equals(JavaKeywords.replaceJavaKeywordSafe(className))) {
-            validator.addResult(ClazzImplManager.ClazzError.INVALID_CLASS_NAME);
+            validator.addResult(ClazzError.INVALID_CLASS_NAME);
         }
         if (Clazz.ClassType.INTERFACE.equals(classType)) {
             buildInterface(builder, clazz.getVisibility(), className);
         } else if (Clazz.ClassType.CLASS.equals(classType)) {
             buildClass(builder, className, clazz);
         } else {
-            validator.addResult(ClazzImplManager.ClazzError.MUST_BE_CLASS_OR_INTERFACE);
+            validator.addResult(ClazzError.MUST_BE_CLASS_OR_INTERFACE);
         }
     }
 
@@ -57,7 +57,7 @@ public class ClassStarter {
         boolean isFinal = clazz.isFinal();
         boolean isAbstract = clazz.isAbstract();
         if (isFinal && isAbstract) {
-            validator.addResult(ClazzImplManager.ClazzError.CANNOT_BE_ABSTRACT_AND_FINAL);
+            validator.addResult(ClazzError.CANNOT_BE_ABSTRACT_AND_FINAL);
             return;
         }
         Clazz.Visibility visibility = clazz.getVisibility();
@@ -76,7 +76,7 @@ public class ClassStarter {
         if (Clazz.Visibility.PUBLIC.equals(visibility)) {
             builder.append(visibility.toString()).append(' ');
         } else if (Clazz.Visibility.PRIVATE.equals(visibility)) {
-            validator.addResult(ClazzImplManager.ClazzError.CANNOT_HAVE_PRIVATE_INTERFACE);
+            validator.addResult(ClazzError.CANNOT_HAVE_PRIVATE_INTERFACE);
         }
         builder.append("interface ").append(className).append(TYPE_PLACEHOLDER);
     }
@@ -121,5 +121,18 @@ public class ClassStarter {
             builder.append("package ").append(packagePath).append(';').append(procUtil.ONE_LINE).append(procUtil.ONE_LINE);
         }
         builder.append(procUtil.IMPORT_PLACEHOLDER).append(procUtil.ONE_LINE);
+    }
+
+    void buildImports(Set<Class> imports, StringBuilder builder) {
+        StringBuilder importBuilder = new StringBuilder();
+        for (Class aClass : imports) {
+            String importName = aClass.getCanonicalName();
+            if (!importName.startsWith("java.lang") && importName.equals(JavaKeywords.replaceJavaKeyword(importName))) {
+                importBuilder.append("import ").append(procUtil.dollarToDot(importName)).append(';').append(procUtil.ONE_LINE);
+            }
+        }
+        int start = builder.indexOf(procUtil.IMPORT_PLACEHOLDER);
+        int end = start + procUtil.IMPORT_PLACEHOLDER.length();
+        builder.replace(start, end, importBuilder.toString());
     }
 }

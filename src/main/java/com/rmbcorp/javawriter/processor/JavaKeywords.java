@@ -6,7 +6,7 @@ package com.rmbcorp.javawriter.processor;
 enum JavaKeywords {
     BOOL("boolean", "bool"), CHAR("char", "ch"), INT("int", "i"), LONG("long", "l"), FLOAT("float", "f"),
     DOUBLE("double", "d"), CLASS("Class", "clazz"), ENUM("enum", "en"), BOOLEAN("Boolean", "bool"), SHORT("short", "srt"),
-    FALSE("false", "fal"), TRUE("true", "tru"), NULL("null", "nul"), BYTE("byte", "bt");
+    FALSE("false", "fal"), TRUE("true", "tru"), NULL("null", "nul"), BYTE("byte", "bt"), VOID("void", "vd");
 
     private final String keyword;
     private final String replacement;
@@ -55,7 +55,7 @@ enum JavaKeywordsExtended {
     NATIVE("nat"), NEW("nw"), PACKAGE("pack"), PRIVATE("priv"), PROTECTED("prot"),
     PUBLIC("pub"), RETURN("ret"), STATIC("stat"), STRICTFP("sfp"), SUPER("sup"),
     SWITCH("swt"), SYNCHRONIZED("synced"), THIS("ths"), THROW("thw"), THROWS("tws"),
-    TRANSIENT("trans"), TRY("tr"), VOID("vd"), VOLATILE("vol"), WHILE("whl");
+    TRANSIENT("trans"), TRY("tr"), VOLATILE("vol"), WHILE("whl");
 
     private final String keyword;
     private final String replacement;

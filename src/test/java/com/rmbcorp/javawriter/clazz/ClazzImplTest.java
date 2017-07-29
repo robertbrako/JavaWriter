@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.rmbcorp.javawriter.clazz.ClazzImplManager.ClazzError.*;
+import static com.rmbcorp.javawriter.clazz.ClazzError.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -24,24 +24,22 @@ import static org.junit.Assert.fail;
  */
 public class ClazzImplTest {
 
-    public static final Class<Integer> INTEGER_CLASS = Integer.class;
-    public static final Class<String> STRING_CLASS = String.class;
-    public static final String CLASS_NAME = "ArbitraryName";
-    public static final String COM_RMBCORP_JAVAWRITER = "com.rmbcorp.javawriter";
+    private static final Class<Collections> COLLECTIONS = Collections.class;
+    private static final Class<ArrayList> ARRAY_LIST = ArrayList.class;
+    private static final String CLASS_NAME = "ArbitraryName";
+    private static final String COM_RMBCORP_JAVAWRITER = "com.rmbcorp.javawriter";
 
-    private ClazzProcessor clazzProcessor;
-    private ClazzImplManager clazzManager;
-    private Clazz clazz;
+    private ClazzProcessor<ClazzReadable> clazzProcessor;
+    private ClazzImpl clazz;
 
     @Before
     public void setUp() throws Exception {
-        clazzManager = ClazzImplManager.getInstance();
         clazzProcessor = ProcessorProvider.getClazzProcessor();
-        clazz = clazzManager.get(COM_RMBCORP_JAVAWRITER, "ClazzImpl2");
-        setupClass(Collections.<Class>singletonList(Clazz.class));
+        clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER, "ClazzImpl2");
+        setupClass(Collections.singletonList(Clazz.class));
     }
 
-    private Clazz setupClass(List<Class> impls) {
+    private ClazzImpl setupClass(List<Class> impls) {
         clazz.setClassType(Clazz.ClassType.CLASS);
         clazz.addExtension(Object.class);
         clazz.addImplementations(impls);
@@ -50,7 +48,7 @@ public class ClazzImplTest {
 
     @Test
     public void cannotHaveEmptyNameTest() {
-        Clazz nameless = clazzManager.get(COM_RMBCORP_JAVAWRITER, "");
+        ClazzImpl nameless = new ClazzImpl(COM_RMBCORP_JAVAWRITER, "");
         String output = clazzProcessor.writeOut(nameless);
         assertTrue("".equals(output));
         assertTrue(clazzProcessor.hasError(CANNOT_HAVE_EMPTY_CLASS_NAME));
@@ -65,7 +63,7 @@ public class ClazzImplTest {
 
     @Test
     public void outputContainsAllImportsTest() {
-        List<Class> classList = Arrays.<Class>asList(INTEGER_CLASS, STRING_CLASS);
+        List<Class> classList = Arrays.asList(COLLECTIONS, ARRAY_LIST);
         clazz.addImports(classList);
         String[] output = clazzProcessor.writeOut(clazz).split(";|\\s");
         assertTrue(StringUtil.containsAll(output, nameMatch(classList)));
@@ -81,7 +79,7 @@ public class ClazzImplTest {
 
     @Test
     public void packageNameNotCurrentlyRequiredTest() {
-        Clazz packageless = clazzManager.get("", CLASS_NAME);
+        ClazzImpl packageless = new ClazzImpl("", CLASS_NAME);
         String output = clazzProcessor.writeOut(packageless);
         assertTrue(StringUtil.containsAll(output.split("\\s"), new String[]{ "class", CLASS_NAME, "}" }));
     }
@@ -104,7 +102,7 @@ public class ClazzImplTest {
 
     @Test
     public void fieldNameValidationTest() {
-        setupClass(Collections.<Class>singletonList(SampleInterface.class));
+        setupClass(Collections.singletonList(SampleInterface.class));
         String output = clazzProcessor.writeOut(clazz);
         assertFalse(output.contains("private Class class"));
         assertTrue(output.contains("private Class clazz"));
@@ -112,14 +110,14 @@ public class ClazzImplTest {
 
     @Test
     public void forLoopGenerationTest() {
-        setupClass(Collections.<Class>singletonList(Clazz.class));
+        setupClass(Collections.singletonList(Clazz.class));
         String output = clazzProcessor.writeOut(clazz);
         assertTrue(output.contains("for (Class clazz : list)"));
     }
 
     @Test
     public void addCustomMethodTest() throws NoSuchMethodException {
-        Clazz withMethod = clazzManager.get(COM_RMBCORP_JAVAWRITER, CLASS_NAME);
+        ClazzImpl withMethod = new ClazzImpl(COM_RMBCORP_JAVAWRITER, CLASS_NAME);
         withMethod.addMethod(new JMethod("setDestroyWorlds", Boolean.class, Clazz.Visibility.PUBLIC,
                 COM_RMBCORP_JAVAWRITER, String.class, Integer.class));
         withMethod.addMethod(new JMethod("isDestroyWorlds", Void.class, Clazz.Visibility.PUBLIC,
@@ -134,7 +132,7 @@ public class ClazzImplTest {
     }
 
     @Test public void testParamSameTypeTest() {
-        setupClass(Collections.<Class>singletonList(SampleInterface.class));
+        setupClass(Collections.singletonList(SampleInterface.class));
         Pattern pattern = Pattern.compile("String setFoo\\((.*)\\)");
         Matcher matcher = pattern.matcher(clazzProcessor.writeOut(clazz));
         if (matcher.find()) {
@@ -155,14 +153,14 @@ public class ClazzImplTest {
     }
 
     @Test public void insertIfIfBooleanParamTest() {
-        Clazz clazz = setupClass(Collections.<Class>singletonList(SampleInterface.class));
+        ClazzImpl clazz = setupClass(Collections.singletonList(SampleInterface.class));
         Pattern pattern = Pattern.compile("if\\s*\\(.*\\)");
         Matcher matcher = pattern.matcher(clazzProcessor.writeOut(clazz));
         assertTrue(matcher.find());
     }
 
     @Test public void bytePrimitiveIsNotImportedTest() {
-        Clazz clazz = setupClass(Collections.<Class>singletonList(DataInput.class));
+        ClazzImpl clazz = setupClass(Collections.singletonList(DataInput.class));
         String output = clazzProcessor.writeOut(clazz);
         assertFalse(output.contains("import byte"));
         assertFalse(output.contains("byte[] byte"));

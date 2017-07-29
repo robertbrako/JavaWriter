@@ -15,50 +15,43 @@
 */
 package com.rmbcorp.javawriter.processor;
 
-import com.rmbcorp.javawriter.clazz.Clazz;
-import com.rmbcorp.javawriter.clazz.ClazzImplManager;
-import com.rmbcorp.javawriter.clazz.ClazzReadable;
-import com.rmbcorp.javawriter.clazz.JMethod;
-import com.rmbcorp.javawriter.clazz.JVariable;
+import com.rmbcorp.javawriter.clazz.*;
 import com.rmbcorp.util.ValidationManager;
 
 import java.util.*;
 
 
-final class BeanProcessor implements ClazzProcessor {
+final class BeanProcessor implements ClazzProcessor<ClazzReadable> {
 
-    private final ValidationManager<ClazzImplManager.ClazzError> validator;
+    private final ValidationManager<ClazzError> validator;
     private final ClassStarter classStarter;
     private final ProcUtil procUtil;
     private StringBuilder builder;
     private Map<String, String> varNames = new HashMap<>();
     private String errorCache;
 
-    BeanProcessor(ValidationManager<ClazzImplManager.ClazzError> validator, ClassStarter classStarter, ProcUtil procUtil) {
+    BeanProcessor(ValidationManager<ClazzError> validator, ClassStarter classStarter, ProcUtil procUtil) {
         this.validator = validator;
         this.classStarter = classStarter;
         this.procUtil = procUtil;
     }
 
     @Override
-    public boolean hasError(ClazzImplManager.ClazzError error) {
+    public boolean hasError(ClazzError error) {
         return errorCache.contains(error.toString());
     }
 
     @Override
-    public String writeOut(Clazz clazz) {
-        if (clazz instanceof ClazzReadable) {
-            String out = writeOut((ClazzReadable) clazz);
-            if (validator.hasErrors()) {
-                errorCache = ((ClazzValidator)validator).getErrorsAsCSV();
-                validator.removeAllResults();
-            }
-            return out;
+    public String writeOut(ClazzReadable clazz) {
+        String out = doWriteOut(clazz);
+        if (validator.hasErrors()) {
+            errorCache = ((ClazzValidator)validator).getErrorsAsCSV();
+            validator.removeAllResults();
         }
-        else return "";
+        return out;
     }
 
-    String writeOut(ClazzReadable clazz) {
+    private String doWriteOut(ClazzReadable clazz) {
         reset();
         int tabLevel = 0;
         String packagePath = clazz.getPackagePath();
@@ -70,12 +63,12 @@ final class BeanProcessor implements ClazzProcessor {
 
         Set<JMethod> beanMethods = getFromBeanVariables(packagePath, clazz.getBeanVariables());
         beanMethods.addAll(clazz.getMethods());
-        beanMethods.stream().forEach(jMethod -> imports.add(jMethod.getReturnType()));
+        beanMethods.forEach(jMethod -> imports.add(jMethod.getReturnType()));
 
         openBody();
         buildBody(beanMethods, tabLevel + 1);
         buildVariables(tabLevel + 1);
-        buildImports(imports);
+        classStarter.buildImports(imports, builder);
         closeBody();
         return builder.toString();
     }
@@ -157,19 +150,6 @@ final class BeanProcessor implements ClazzProcessor {
         varNames.forEach((varName, varType) -> varBuilder.append(procUtil.tab(lev)).append("private ").append(varType).append(' ').append(varName).append(";\n"));
         int varIndex = builder.indexOf(procUtil.VARIABLE_PLACEHOLDER);
         builder.replace(varIndex, varIndex + procUtil.VARIABLE_PLACEHOLDER.length(), varBuilder.toString());
-    }
-
-    private void buildImports(Set<Class> imports) {
-        StringBuilder importBuilder = new StringBuilder();
-        for (Class aClass : imports) {
-            String importName = aClass.getCanonicalName();
-            if (!importName.startsWith("java.lang")) {
-                importBuilder.append("import ").append(procUtil.dollarToDot(importName)).append(';').append(procUtil.ONE_LINE);
-            }
-        }
-        int start = builder.indexOf(procUtil.IMPORT_PLACEHOLDER);
-        int end = start + procUtil.IMPORT_PLACEHOLDER.length();
-        builder.replace(start, end, importBuilder.toString());
     }
 
     private void closeBody() {

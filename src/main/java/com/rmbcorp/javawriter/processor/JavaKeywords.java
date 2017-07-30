@@ -5,7 +5,7 @@ package com.rmbcorp.javawriter.processor;
  */
 enum JavaKeywords {
     BOOL("boolean", "bool"), CHAR("char", "ch"), INT("int", "i"), LONG("long", "l"), FLOAT("float", "f"),
-    DOUBLE("double", "d"), CLASS("Class", "clazz"), ENUM("enum", "en"), BOOLEAN("Boolean", "bool"), SHORT("short", "srt"),
+    DOUBLE("double", "d"), CLASS("Class", "clazz"), CLASS2("class", "clazz"), ENUM("enum", "en"), BOOLEAN("Boolean", "bool"), SHORT("short", "srt"),
     FALSE("false", "fal"), TRUE("true", "tru"), NULL("null", "nul"), BYTE("byte", "bt"), VOID("void", "vd");
 
     private final String keyword;

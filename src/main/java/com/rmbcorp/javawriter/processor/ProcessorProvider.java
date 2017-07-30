@@ -16,6 +16,7 @@
 package com.rmbcorp.javawriter.processor;
 
 import com.rmbcorp.javawriter.clazz.ClazzReadable;
+import com.rmbcorp.javawriter.clazz.EnumReadable;
 
 public class ProcessorProvider {
 
@@ -33,5 +34,12 @@ public class ProcessorProvider {
         ProcUtil procUtil = new ProcUtil();
         ClassStarter classStarter = new ClassStarter(validator, procUtil);
         return new ClazzImplProcessor(validator, classStarter, procUtil);
+    }
+
+    public static ClazzProcessor<EnumReadable> getEnumProcessor() {
+        ClazzValidator validator = new ClazzValidator();
+        ProcUtil procUtil = new ProcUtil();
+        ClassStarter classStarter = new ClassStarter(validator, procUtil);
+        return new EnumProcessor(validator, classStarter, procUtil);
     }
 }

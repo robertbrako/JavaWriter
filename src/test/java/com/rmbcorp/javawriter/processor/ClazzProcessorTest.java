@@ -20,6 +20,7 @@ import com.rmbcorp.javawriter.clazz.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,6 +32,7 @@ import static org.junit.Assert.assertTrue;
 public class ClazzProcessorTest {
 
     private static final String COM_RMBCORP_JAVAWRITER = "com.rmbcorp.javawriter";
+    private static final String CLASS_NAME = "ClazzImpl2";
 
     private ClazzProcessor<ClazzReadable> clazzProcessor;
     private ClazzImpl clazz;
@@ -38,7 +40,7 @@ public class ClazzProcessorTest {
     @Before
     public void setUp() throws Exception {
         clazzProcessor = ProcessorProvider.getBeanProcessor();
-        clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER, "ClazzImpl2");
+        clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER, CLASS_NAME);
     }
 
     @Test
@@ -105,9 +107,22 @@ public class ClazzProcessorTest {
     @Test
     public void paramTest() {
         ClazzProcessor<ClazzReadable> clazzProcessor = ProcessorProvider.getClazzProcessor();
-        clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER + ".processor", "ClazzImpl2");
+        clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER + ".processor", CLASS_NAME);
         clazz.addImplementations(Collections.singletonList(SampleInterface.class));
         String out = clazzProcessor.writeOut(clazz);
         assertTrue(out.contains("typedParam(List<String> "));
     }
+
+    @Test
+    public void basicEnumTest() {
+        ClazzProcessor<EnumReadable> clazzProcessor = ProcessorProvider.getEnumProcessor();
+        EnumImpl enumImpl = new EnumImpl(COM_RMBCORP_JAVAWRITER, CLASS_NAME);
+        enumImpl.setVisibility(Clazz.Visibility.PUBLIC);
+        enumImpl.addEnumConstants(Arrays.asList("CLASS", "INTERFACE"));
+        String out = clazzProcessor.writeOut(enumImpl);
+        assertTrue(out.contains("package " + COM_RMBCORP_JAVAWRITER + ";"));
+        assertTrue(out.contains(enumImpl.getVisibility() + " enum " + CLASS_NAME + " {"));
+        assertTrue(out.contains("INTERFACE") && out.contains("CLASS"));
+    }
+
 }

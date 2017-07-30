@@ -7,12 +7,14 @@ import com.rmbcorp.javawriter.clazz.*;
 import com.rmbcorp.javawriter.logman.LoggerManager;
 import com.rmbcorp.javawriter.logman.TempLogger;
 import com.rmbcorp.javawriter.processor.ClazzProcessor;
+import com.rmbcorp.javawriter.processor.EnumImpl;
 import com.rmbcorp.javawriter.processor.ProcessorProvider;
 import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -97,17 +99,13 @@ public class JavacTestIT {
     }
 
     @Test public void fullCompileTest() {
-        testFile = new File(getNormalPathname());
         ClazzProcessor<ClazzReadable> clazzProcessor = ProcessorProvider.getClazzProcessor();
         ClazzImpl clazz = new ClazzImpl("", FILE_NAME);
         clazz.addImplementations(Collections.singletonList(List.class));
 
         BuildJob buildJob = getBuildJob(clazzProcessor, clazz);
         compile(buildJob);
-
-        File binary = new File(BIN_PATH + SL + FILE_NAME + ".class");
-        assertTrue(binary.exists());
-        binary.delete();
+        verifySuccess(buildJob);
     }
 
     private <T> BuildJob getBuildJob(ClazzProcessor<T> clazzProcessor, T clazz) {
@@ -118,8 +116,15 @@ public class JavacTestIT {
         return buildJob;
     }
 
-    @Test public void beanCompileTest() {
+    private void verifySuccess(BuildJob buildJob) {
+        assertFalse(buildJob.getFileContents().isEmpty());
         testFile = new File(getNormalPathname());
+        File binary = new File(BIN_PATH + SL + FILE_NAME + ".class");
+        assertTrue(binary.exists());
+        binary.delete();
+    }
+
+    @Test public void beanCompileTest() {
         ClazzProcessor<ClazzReadable> clazzProcessor = ProcessorProvider.getBeanProcessor();
         ClazzImpl clazz = new ClazzImpl("", FILE_NAME);
         clazz.addImplementations(Collections.singletonList(ClazzReadable.class));
@@ -132,15 +137,23 @@ public class JavacTestIT {
 
         BuildJob buildJob = getBuildJob(clazzProcessor, clazz);
         compile(buildJob);
-
-        File binary = new File(BIN_PATH + SL + FILE_NAME + ".class");
-        assertTrue(binary.exists());
-        binary.delete();
+        verifySuccess(buildJob);
     }
 
     private String getPwd() {
         String pwd = System.getenv().get("PWD");
         return pwd == null ? "" : pwd + SL;
+    }
+
+    @Test
+    public void basicEnumCompileTest() {
+        ClazzProcessor<EnumReadable> processor = ProcessorProvider.getEnumProcessor();
+        EnumImpl clazz = new EnumImpl("", FILE_NAME);
+        clazz.addEnumConstants(Arrays.asList("FOO", "BAR"));
+
+        BuildJob buildJob = getBuildJob(processor, clazz);
+        compile(buildJob);
+        verifySuccess(buildJob);
     }
 
     @After public void cleanup() {

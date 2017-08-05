@@ -3,10 +3,14 @@ package com.rmbcorp.javawriter.processor;
 import com.rmbcorp.javawriter.clazz.ClazzError;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 class ClassBuilder {
 
+    private static final Pattern newLine = Pattern.compile("(.*)(\n*)");
     private StringBuilder builder;
     private List<ClazzError> errorCache;
     private int lineNo = 1;
@@ -95,6 +99,18 @@ class ClassBuilder {
         int length = builder.lastIndexOf(", ");
         if (length != -1) {
             builder.replace(length, length + 1, "");
+        }
+    }
+
+    void processComments(String comment) {
+        if (!comment.isEmpty()) {
+            builder.append("/** ");
+            Matcher matcher = newLine.matcher(comment);
+            while (matcher.find()) {
+                builder.append(matcher.group(1)).append(matcher.group(2)).append("    ");
+                lineNo++;
+            }
+            appendln().append("**/").appendln();
         }
     }
 }

@@ -99,9 +99,14 @@ public class JavacTestIT {
     }
 
     @Test public void fullCompileTest() {
+        String comments = "This is a multiline comment\nHopefully it works";
         ClazzProcessor<ClazzReadable> clazzProcessor = ProcessorProvider.getClazzProcessor();
         ClazzImpl clazz = new ClazzImpl("", FILE_NAME);
         clazz.addImplementations(Collections.singletonList(List.class));
+        clazz.setComments(comments);
+        JMethod commentedMethod = new JMethod("commentedMethod", Void.class, Clazz.Visibility.PACKAGE, "");
+        commentedMethod.setComment(comments);
+        clazz.addMethod(commentedMethod);
 
         BuildJob buildJob = getBuildJob(clazzProcessor, clazz);
         compile(buildJob);

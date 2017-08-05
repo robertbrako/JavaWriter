@@ -28,6 +28,7 @@ public class JMethod {
     private int modifier;
     private String asGenericString;
     private List<Class<?>> params;
+    private String comment = "";
 
 
     public JMethod(Method method) {
@@ -49,7 +50,7 @@ public class JMethod {
     }
 
     private String getParams(Class<?>[] params) {
-        return Arrays.<Class>asList(params).stream()
+        return Arrays.<Class>stream(params)
                 .map(Class::getCanonicalName)
                 .collect(Collectors.joining(","));
     }
@@ -72,6 +73,14 @@ public class JMethod {
 
     public boolean isOverride() {
         return method != null;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String commentText) {
+        comment = commentText;
     }
 
     @Override

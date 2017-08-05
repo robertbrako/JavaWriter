@@ -21,6 +21,7 @@ public class ClazzImpl implements Clazz, ClazzReadable {
     private final Set<Class> implementations = new HashSet<>();
     private final Set<JMethod> methods = new HashSet<>();
     private final Set<JVariable> variables = new HashSet<>();
+    private String comments = "";
 
 
     public ClazzImpl(String packagePath, String className) {
@@ -79,6 +80,11 @@ public class ClazzImpl implements Clazz, ClazzReadable {
     }
 
     @Override
+    public void setComments(String classComments) {
+        comments = classComments;
+    }
+
+    @Override
     public String getPackagePath() {
         return packagePath;
     }
@@ -131,5 +137,10 @@ public class ClazzImpl implements Clazz, ClazzReadable {
     @Override
     public Set<JVariable> getBeanVariables() {
         return variables;
+    }
+
+    @Override
+    public String getComments() {
+        return comments;
     }
 }

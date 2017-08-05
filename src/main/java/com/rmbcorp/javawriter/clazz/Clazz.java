@@ -35,4 +35,5 @@ public interface Clazz {
     void addImplementations(List<Class> implementation);
     void addMethod(JMethod jMethod);
     void addBeanVariable(JVariable variable);
+    void setComments(String classComments);
 }

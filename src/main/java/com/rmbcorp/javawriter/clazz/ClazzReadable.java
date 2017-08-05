@@ -40,4 +40,6 @@ public interface ClazzReadable {
     Set<JMethod> getMethods();
 
     Set<JVariable> getBeanVariables();
+
+    String getComments();
 }

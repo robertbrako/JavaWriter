@@ -82,12 +82,10 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
         if (jMethod.isOverride()) {
             builder.append(procUtil.tab(lev)).append("@Override").appendln();
         }
+        builder.processComments(jMethod.getComment());
 
         ProcUtil.ReturnParams returnAndParams = procUtil.getReturnAndParams(jMethod);
-        returnType = returnAndParams.getReturnType();
-        if (returnType.startsWith("<")) {
-            returnType += " " + returnType.replaceAll("[<>]", "") + "[]";
-        }
+        returnType = procUtil.getReturnType(returnAndParams);
         returnTypeAndParams = returnAndParams.getParams();
         builder.append(procUtil.tab(lev)).append(procUtil.getScope(jMethod.getModifier()))
                 .append(returnType).append(' ')
@@ -165,12 +163,7 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
             param = parameterTypes.get(i);
             simpleName = procUtil.getClassSimpleName(procUtil.dollarToDot(param.getParamType()));
             builder.append(simpleName);
-            if (!param.types().isEmpty()) {
-                builder.append("<");
-                String parametrizedTypes = param.types().stream().collect(Collectors.joining(","));
-                builder.append(parametrizedTypes);
-                builder.append(">");
-            }
+            classStarter.addParametrization(builder, param);
             builder.append(" ");
 
             String trimmedParam = cleanParamString(simpleName);

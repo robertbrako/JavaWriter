@@ -120,4 +120,21 @@ public class ClazzProcessorTest {
         assertTrue(out.contains("INTERFACE") && out.contains("CLASS"));
     }
 
+    @Test
+    public void commentTest() {
+        ClazzProcessor<ClazzReadable> clazzProcessor = ProcessorProvider.getClazzProcessor();
+        clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER + ".processor", CLASS_NAME);
+        JMethod jMethod = new JMethod("method", Void.class, Clazz.Visibility.PACKAGE, COM_RMBCORP_JAVAWRITER);
+        String line1 = "This is a multiline comment";
+        String line2 = "Hopefully it works";
+        jMethod.setComment(String.format("%s\n%s", line1, line2));
+        clazz.addMethod(jMethod);
+        String out = clazzProcessor.writeOut(clazz).getContents();
+
+        assertTrue(out.contains("/**"));
+        assertTrue(out.indexOf("/**") < out.indexOf(line1));
+        assertTrue(out.indexOf(line1) < out.indexOf(line2));
+        assertTrue(out.indexOf(line2) < out.indexOf("**/"));
+        assertTrue(out.contains("void method()"));
+    }
 }

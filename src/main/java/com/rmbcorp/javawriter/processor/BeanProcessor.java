@@ -90,27 +90,35 @@ final class BeanProcessor implements ClazzProcessor<ClazzReadable> {
         for (JMethod method : methods) {
             varCache.clear();
             ProcUtil.ReturnParams returnParams = procUtil.getReturnAndParams(method);
-            String returnType = procUtil.dollarToDot(returnParams.getReturnType());
-            List<ProcUtil.JParam> preParams = returnParams.getParams();
+            String returnType = procUtil.getReturnType(returnParams);
 
+            builder.processComments(method.getComment());
             builder.append(procUtil.tab(lev))
                     .append(procUtil.getScope(method.getModifier()))
                     .append(returnType).append(' ')
                     .append(method.getName()).append('(');
-            for (Iterator<ProcUtil.JParam> iterator = preParams.iterator(); iterator.hasNext(); ) {
-                ProcUtil.JParam variable = iterator.next();
-                String varType = procUtil.toPrimitive(procUtil.getClassSimpleName(variable.getParamType()));
-                String varName = procUtil.getVarName(method.getName().replaceFirst("set", ""));
-                varNames.put(varName, varType);
-                varCache.add(varName);
-                builder.append(varType).append(' ').append(varName);
-                if (iterator.hasNext()) {
-                    builder.append(", ");
-                }
-            }
+
+            buildParams(varCache, method, returnParams.getParams());
+
             builder.append(") {").appendln();
             buildMethod(varCache, method.getName(), lev + 1);
             builder.append(procUtil.tab(lev)).append("}").appendln();
+        }
+    }
+
+    private void buildParams(List<String> varCache, JMethod method, List<ProcUtil.JParam> preParams) {
+        for (Iterator<ProcUtil.JParam> iterator = preParams.iterator(); iterator.hasNext(); ) {
+            ProcUtil.JParam variable = iterator.next();
+            String varType = procUtil.toPrimitive(procUtil.getClassSimpleName(variable.getParamType()));
+            String varName = procUtil.getVarName(method.getName().replaceFirst("set", ""));
+            varNames.put(varName, varType);
+            varCache.add(varName);
+            builder.append(varType);
+            classStarter.addParametrization(builder, variable);
+            builder.append(' ').append(varName);
+            if (iterator.hasNext()) {
+                builder.append(", ");
+            }
         }
     }
 

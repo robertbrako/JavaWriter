@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 class ClassStarter {
 
@@ -34,6 +35,7 @@ class ClassStarter {
     }
 
     void buildClassOrInterface(ClassBuilder builder, Clazz.ClassType classType, ClazzReadable clazz) {
+        builder.processComments(clazz.getComments());
         String className = clazz.getClassName();
         if (StringUtil.isEmpty(className)) {
             builder.addResult(ClazzError.CANNOT_HAVE_EMPTY_CLASS_NAME);
@@ -118,4 +120,14 @@ class ClassStarter {
             }
         }
     }
+
+    void addParametrization(ClassBuilder builder, ProcUtil.JParam param) {
+        if (!param.types().isEmpty()) {
+            builder.append("<");
+            String parametrizedTypes = param.types().stream().collect(Collectors.joining(","));
+            builder.append(parametrizedTypes);
+            builder.append(">");
+        }
+    }
+
 }

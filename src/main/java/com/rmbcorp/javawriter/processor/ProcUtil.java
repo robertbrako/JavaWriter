@@ -132,6 +132,14 @@ class ProcUtil {
         return newParam;
     }
 
+    String getReturnType(ReturnParams returnParams) {
+        String returnType = dollarToDot(returnParams.getReturnType());
+        if (returnType.startsWith("<")) {
+            returnType += " " + returnType.replaceAll("[<>]", "") + "[]";
+        }
+        return returnType;
+    }
+
     class ReturnParams {
         String returnType = "";
         List<JParam> params = new ArrayList<>();

@@ -4,6 +4,7 @@ import com.rmbcorp.javawriter.BuildJob;
 import com.rmbcorp.javawriter.clazz.*;
 import com.rmbcorp.javawriter.logman.LoggerManager;
 import com.rmbcorp.javawriter.processor.ClazzProcessor;
+import com.rmbcorp.javawriter.processor.ProcessResult;
 import com.rmbcorp.javawriter.processor.ProcessorProvider;
 import org.junit.After;
 import org.junit.Before;
@@ -39,10 +40,10 @@ public class JavaCompilerTestIT {
         BuildJob job = BuildJob.get(fileName, RELATIVE_PATH);
         ClazzImpl clazz = new ClazzImpl("", fileName);
         clazz.addBeanVariable(new JVariable("classId", String.class));
-        String fileContents = processorProvider.writeOut(clazz);
-        assertTrue(processorProvider.hasError(ClazzError.INVALID_CLASS_NAME));
+        ProcessResult result = processorProvider.writeOut(clazz);
+        assertTrue(result.getErrorCache().contains(ClazzError.INVALID_CLASS_NAME));
 
-        job.setFileContents(fileContents);
+        job.setFileContents(result.getContents());
         job.setBinPath("src/test/bin");
 
         javaCompiler.setParams(JavacParams.NO_SAVE_ERRORS);

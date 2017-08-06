@@ -2,10 +2,8 @@ package com.rmbcorp.javawriter;
 
 import com.rmbcorp.javawriter.clazz.ClazzImpl;
 import com.rmbcorp.javawriter.processor.ClazzProcessor;
-import com.rmbcorp.javawriter.processor.ProcUtil;
 import com.rmbcorp.javawriter.processor.ProcessorProvider;
 import com.rmbcorp.util.argparser.ArgParser;
-import com.rmbcorp.util.argparser.ParserProv;
 import com.rmbcorp.javawriter.autojavac.AutoJavacException;
 import com.rmbcorp.javawriter.autojavac.Compiler;
 import com.rmbcorp.javawriter.autojavac.JavaCompiler;
@@ -21,6 +19,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -29,11 +28,12 @@ import java.util.logging.Logger;
  */
 class JavaWriter {
 
-    public static final String DEFAULT_FILENAME = "default";
+    static final String GEN_FOLDER = "src/gen/";
+    private static final String DEFAULT_FILENAME = "default";
 
     enum JavacOpts { CLASSPATH, D }
-    enum JWOpts implements ArgParser.HasDefault {
-        DEBUGENV, USESOUT("false"), FILENAME, PACKAGE, GEN(ProcUtil.GEN_FOLDER), CLASSTYPE("class"), VISIBILITY(Visibility.PACKAGE.toString());
+    enum JWOpts implements Supplier<String> {
+        DEBUGENV, USESOUT("false"), FILENAME, PACKAGE, GEN(GEN_FOLDER), CLASSTYPE("class"), VISIBILITY(Visibility.PACKAGE.toString());
 
         private final String defaultVal;
 
@@ -44,27 +44,24 @@ class JavaWriter {
         }
 
         @Override
-        public String getDefault() {
+        public String get() {
             return defaultVal;
         }
     }
 
     private static final Logger jLogger = Logger.getGlobal();
     private static TempLogger logger;
-    private static Compiler compiler;
     private static ClazzProcessor clazzProcessor;
-    private static ArgParser argParser;
     private static boolean debugEnv = false;
-    private static boolean useSout;
 
     public static void main(String[] args) {
-        argParser = new ParserProv().getDefault();
+        ArgParser argParser = new ArgParser();
         Map<JWOpts, String> jwOptions = argParser.getArgs(args, "-", JWOpts.class);
         Map<JavacOpts, String> javacOptsMap = argParser.getArgs(args, "-", JavacOpts.class);
         debugEnv = Boolean.parseBoolean(jwOptions.get(JWOpts.DEBUGENV));
-        useSout = Boolean.parseBoolean(jwOptions.get(JWOpts.USESOUT));
+        boolean useSout = Boolean.parseBoolean(jwOptions.get(JWOpts.USESOUT));
         logger = new LoggerManager(useSout);
-        compiler = new JavaCompiler(logger);
+        Compiler compiler = new JavaCompiler(logger);
         clazzProcessor = ProcessorProvider.getClazzProcessor();
 
         JavacJob buildJob = getJavacJob(jwOptions, javacOptsMap);
@@ -89,7 +86,7 @@ class JavaWriter {
         buildJob.setFileName(filename);
         jwOptions.put(JWOpts.FILENAME, filename);
         Clazz clazz = getClazz(jwOptions);
-        buildJob.setFileContents(clazzProcessor.writeOut(clazz));
+        buildJob.setFileContents(clazzProcessor.writeOut(clazz).getContents());
         return buildJob;
     }
 
@@ -114,9 +111,9 @@ class JavaWriter {
             clazz.setVisibility(Visibility.PACKAGE);
             jLogger.log(Level.INFO, e.getLocalizedMessage(), e);
         }
-        clazz.addImports(Arrays.<Class>asList(Integer.class, String.class, String.class));
+        clazz.addImports(Arrays.asList(Integer.class, String.class, String.class));
         clazz.setFinal(true);
-        clazz.addImplementations(Collections.<Class>singletonList(List.class));
+        clazz.addImplementations(Collections.singletonList(List.class));
         return clazz;
     }
 

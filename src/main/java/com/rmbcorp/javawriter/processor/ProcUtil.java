@@ -22,19 +22,14 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ProcUtil {
+class ProcUtil {
 
-    public static final String GEN_FOLDER = "src/gen/";
     private final Pattern paramFinder = Pattern.compile("\\((.+)\\)");
     private final Pattern paramTypeFinder = Pattern.compile("(.*)<(.*)>");
 
-    final String IMPORT_PLACEHOLDER = "//%%IMPORTS%%";
-    final String VARIABLE_PLACEHOLDER = "//%%VARIABLES%%";
-    final char ONE_LINE = '\n';
-    final char[] TWO_LINES = { '\n', '\n' };
-    Map<String, String> primitives;
+    private Map<String, String> primitives;
 
-    public ProcUtil() {
+    ProcUtil() {
         buildPrimitiveMap();
     }
 

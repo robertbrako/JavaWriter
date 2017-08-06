@@ -20,26 +20,22 @@ import com.rmbcorp.javawriter.clazz.EnumReadable;
 
 public class ProcessorProvider {
 
+    private static ProcUtil procUtil = new ProcUtil();
+
     private ProcessorProvider() { }
 
     public static ClazzProcessor<ClazzReadable> getBeanProcessor() {
-        ClazzValidator validator = new ClazzValidator();
-        ProcUtil procUtil = new ProcUtil();
-        ClassStarter classStarter = new ClassStarter(validator, procUtil);
-        return new BeanProcessor(validator, classStarter, procUtil);
+        ClassStarter classStarter = new ClassStarter(procUtil);
+        return new BeanProcessor(classStarter, procUtil);
     }
 
     public static ClazzProcessor<ClazzReadable> getClazzProcessor() {
-        ClazzValidator validator = new ClazzValidator();
-        ProcUtil procUtil = new ProcUtil();
-        ClassStarter classStarter = new ClassStarter(validator, procUtil);
-        return new ClazzImplProcessor(validator, classStarter, procUtil);
+        ClassStarter classStarter = new ClassStarter(procUtil);
+        return new ClazzImplProcessor(classStarter, procUtil);
     }
 
     public static ClazzProcessor<EnumReadable> getEnumProcessor() {
-        ClazzValidator validator = new ClazzValidator();
-        ProcUtil procUtil = new ProcUtil();
-        ClassStarter classStarter = new ClassStarter(validator, procUtil);
-        return new EnumProcessor(validator, classStarter, procUtil);
+        ClassStarter classStarter = new ClassStarter(procUtil);
+        return new EnumProcessor(classStarter, procUtil);
     }
 }

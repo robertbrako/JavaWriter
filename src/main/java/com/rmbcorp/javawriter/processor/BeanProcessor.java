@@ -16,42 +16,25 @@
 package com.rmbcorp.javawriter.processor;
 
 import com.rmbcorp.javawriter.clazz.*;
-import com.rmbcorp.util.ValidationManager;
 
 import java.util.*;
 
 
 final class BeanProcessor implements ClazzProcessor<ClazzReadable> {
 
-    private final ValidationManager<ClazzError> validator;
     private final ClassStarter classStarter;
     private final ProcUtil procUtil;
-    private StringBuilder builder;
+    private ClassBuilder builder;
     private Map<String, String> varNames = new HashMap<>();
-    private String errorCache;
 
-    BeanProcessor(ValidationManager<ClazzError> validator, ClassStarter classStarter, ProcUtil procUtil) {
-        this.validator = validator;
+    BeanProcessor(ClassStarter classStarter, ProcUtil procUtil) {
         this.classStarter = classStarter;
         this.procUtil = procUtil;
+        builder = new ClassBuilder(procUtil);
     }
 
     @Override
-    public boolean hasError(ClazzError error) {
-        return errorCache.contains(error.toString());
-    }
-
-    @Override
-    public String writeOut(ClazzReadable clazz) {
-        String out = doWriteOut(clazz);
-        if (validator.hasErrors()) {
-            errorCache = ((ClazzValidator)validator).getErrorsAsCSV();
-            validator.removeAllResults();
-        }
-        return out;
-    }
-
-    private String doWriteOut(ClazzReadable clazz) {
+    public ProcessResult writeOut(ClazzReadable clazz) {
         reset();
         int tabLevel = 0;
         String packagePath = clazz.getPackagePath();
@@ -70,18 +53,17 @@ final class BeanProcessor implements ClazzProcessor<ClazzReadable> {
         buildVariables(tabLevel + 1);
         classStarter.buildImports(imports, builder);
         closeBody();
-        return builder.toString();
+        return new ProcessResult(builder.toString(), builder.getErrors());
     }
 
     private void reset() {
-        builder = new StringBuilder("");
-        errorCache = "";
+        builder.reset();
         varNames.clear();
     }
 
     private void openBody() {
-        builder.append(" {").append(procUtil.TWO_LINES);
-        builder.append(procUtil.VARIABLE_PLACEHOLDER).append(procUtil.ONE_LINE);
+        builder.append(" {").appendln().appendln();
+        builder.markVariables().appendln();
     }
 
     private Set<JMethod> getFromBeanVariables(String packagePath, Set<JVariable> beanVariables) {
@@ -126,9 +108,9 @@ final class BeanProcessor implements ClazzProcessor<ClazzReadable> {
                     builder.append(", ");
                 }
             }
-            builder.append(") {\n");
+            builder.append(") {").appendln();
             buildMethod(varCache, method.getName(), lev + 1);
-            builder.append(procUtil.tab(lev)).append("}\n");
+            builder.append(procUtil.tab(lev)).append("}").appendln();
         }
     }
 
@@ -137,22 +119,19 @@ final class BeanProcessor implements ClazzProcessor<ClazzReadable> {
             builder.append(procUtil.tab(lev))
                     .append("return ")
                     .append(procUtil.getVarName(methodName.replaceFirst("get", "")))
-                    .append(";\n");
+                    .append(";").appendln();
         } else {
             for (String var : varCache) {
-                builder.append(procUtil.tab(lev)).append("this.").append(var).append(" = ").append(var).append(";\n");
+                builder.append(procUtil.tab(lev)).append("this.").append(var).append(" = ").append(var).append(";").appendln();
             }
         }
     }
 
     private void buildVariables(int lev) {
-        StringBuilder varBuilder = new StringBuilder();
-        varNames.forEach((varName, varType) -> varBuilder.append(procUtil.tab(lev)).append("private ").append(varType).append(' ').append(varName).append(";\n"));
-        int varIndex = builder.indexOf(procUtil.VARIABLE_PLACEHOLDER);
-        builder.replace(varIndex, varIndex + procUtil.VARIABLE_PLACEHOLDER.length(), varBuilder.toString());
+        varNames.forEach((varName, varType) -> builder.insertVariable("private ", varType, varName, lev));
     }
 
     private void closeBody() {
-        builder.append("}\n");
+        builder.append("}").appendln();
     }
 }

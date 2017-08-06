@@ -15,12 +15,9 @@
 */
 package com.rmbcorp.javawriter.processor;
 
-import com.rmbcorp.javawriter.clazz.ClazzError;
-
+@FunctionalInterface
 public interface ClazzProcessor<T> {
 
-    boolean hasError(ClazzError error);
-
-    String writeOut(T clazz);
+    ProcessResult writeOut(T clazz);
 
 }

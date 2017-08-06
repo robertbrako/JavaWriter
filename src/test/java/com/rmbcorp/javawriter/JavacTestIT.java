@@ -112,7 +112,7 @@ public class JavacTestIT {
         BuildJob buildJob = new JavacJob(FILE_NAME, RELATIVE_PATH);
         buildJob.setBinPath(BIN_PATH);
         buildJob.setClassPath(QT + getPwd() + "target" + SL + "classes" + QT);
-        buildJob.setFileContents(clazzProcessor.writeOut(clazz));
+        buildJob.setFileContents(clazzProcessor.writeOut(clazz).getContents());
         return buildJob;
     }
 

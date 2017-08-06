@@ -21,14 +21,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.rmbcorp</groupId>
-            <artifactId>util</artifactId>
-            <version>${util.version}</version>
-            <!-- workaround for JavaWriter outside of private infrastructure -->
-            <scope>system</scope>
-            <systemPath>${libdir}/util-${util.version}.jar</systemPath>
-        </dependency>
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>

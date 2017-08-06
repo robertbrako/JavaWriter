@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,16 +45,10 @@ public class ClazzProcessorTest {
     }
 
     @Test
-    public void removeResultTest() {
-        ProcUtil procUtil = new ProcUtil();
-        ClazzValidator validator = new ClazzValidator();
-        clazzProcessor = new ClazzImplProcessor(validator, new ClassStarter(validator, procUtil), procUtil);
+    public void mustBeClassOrInterfaceType() {
         clazz.setClassType(null);
-        clazzProcessor.writeOut(clazz);
-
-        assertTrue(validator.containsError(MUST_BE_CLASS_OR_INTERFACE));
-        validator.removeResult(MUST_BE_CLASS_OR_INTERFACE);
-        assertFalse(validator.containsError(MUST_BE_CLASS_OR_INTERFACE));
+        List<ClazzError> result = clazzProcessor.writeOut(clazz).getErrorCache();
+        assertTrue(result.contains(MUST_BE_CLASS_OR_INTERFACE));
     }
 
     @Test
@@ -69,7 +64,7 @@ public class ClazzProcessorTest {
     @Test
     public void makeBeanFromVariables() {
         clazz.addBeanVariable(new JVariable("username", String.class));
-        String output = clazzProcessor.writeOut(clazz);
+        String output = clazzProcessor.writeOut(clazz).getContents();
 
         assertTrue(output.contains("public void setUsername(String username)"));
         assertTrue(output.contains("this.username = username"));
@@ -81,7 +76,7 @@ public class ClazzProcessorTest {
     public void makeBeanFromMethods() {
         clazz.addMethod(new JMethod("setUserId", Void.class, Clazz.Visibility.PUBLIC, COM_RMBCORP_JAVAWRITER, Integer.class));
         clazz.addMethod(new JMethod("getUserId", Integer.class, Clazz.Visibility.PUBLIC, COM_RMBCORP_JAVAWRITER));
-        String output = clazzProcessor.writeOut(clazz);
+        String output = clazzProcessor.writeOut(clazz).getContents();
 
         assertTrue(output.contains("public void setUserId(int userId)"));
         assertTrue(output.contains("this.userId = userId"));
@@ -91,7 +86,7 @@ public class ClazzProcessorTest {
 
     @Test
     public void beanIsNotPublicByDefault() {
-        String output = clazzProcessor.writeOut(clazz);
+        String output = clazzProcessor.writeOut(clazz).getContents();
         Pattern pattern = Pattern.compile("public.*class");
         Matcher matcher = pattern.matcher(output);
         assertFalse(matcher.find());
@@ -100,7 +95,7 @@ public class ClazzProcessorTest {
     @Test
     public void beanProcessorDoesNotCurrentlyStubImplementations() {
         clazz.addImplementations(Collections.singletonList(ClazzReadable.class));
-        String output = clazzProcessor.writeOut(clazz);
+        String output = clazzProcessor.writeOut(clazz).getContents();
         assertFalse(output.contains("getPackagePath"));
     }
 
@@ -109,7 +104,7 @@ public class ClazzProcessorTest {
         ClazzProcessor<ClazzReadable> clazzProcessor = ProcessorProvider.getClazzProcessor();
         clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER + ".processor", CLASS_NAME);
         clazz.addImplementations(Collections.singletonList(SampleInterface.class));
-        String out = clazzProcessor.writeOut(clazz);
+        String out = clazzProcessor.writeOut(clazz).getContents();
         assertTrue(out.contains("typedParam(List<String> "));
     }
 
@@ -119,7 +114,7 @@ public class ClazzProcessorTest {
         EnumImpl enumImpl = new EnumImpl(COM_RMBCORP_JAVAWRITER, CLASS_NAME);
         enumImpl.setVisibility(Clazz.Visibility.PUBLIC);
         enumImpl.addEnumConstants(Arrays.asList("CLASS", "INTERFACE"));
-        String out = clazzProcessor.writeOut(enumImpl);
+        String out = clazzProcessor.writeOut(enumImpl).getContents();
         assertTrue(out.contains("package " + COM_RMBCORP_JAVAWRITER + ";"));
         assertTrue(out.contains(enumImpl.getVisibility() + " enum " + CLASS_NAME + " {"));
         assertTrue(out.contains("INTERFACE") && out.contains("CLASS"));

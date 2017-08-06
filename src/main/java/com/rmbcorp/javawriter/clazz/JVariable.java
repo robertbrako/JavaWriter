@@ -22,12 +22,12 @@ public class JVariable {
         classTypeSimple = getClassSimpleName(classType.getSimpleName());
     }
 
-    public String writeOut() {
-        return visibility + " " + classTypeSimple + " " + varName;
-    }
-
     public String getName() {
         return varName;
+    }
+
+    public String getVisibility() {
+        return visibility.toString();
     }
 
     public Class<?> getClassType() {

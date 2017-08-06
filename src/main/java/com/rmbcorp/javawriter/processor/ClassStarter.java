@@ -26,38 +26,35 @@ import java.util.regex.Pattern;
 
 class ClassStarter {
 
-    private static final String TYPE_PLACEHOLDER = "%%TYPE%%";
     private static final Pattern typedClass = Pattern.compile("\\w+(<.*>)");
-    private final ClazzValidator validator;
     private final ProcUtil procUtil;
 
-    ClassStarter(ClazzValidator validator, ProcUtil procUtil) {
-        this.validator = validator;
+    ClassStarter(ProcUtil procUtil) {
         this.procUtil = procUtil;
     }
 
-    void buildClassOrInterface(StringBuilder builder, Clazz.ClassType classType, ClazzReadable clazz) {
+    void buildClassOrInterface(ClassBuilder builder, Clazz.ClassType classType, ClazzReadable clazz) {
         String className = clazz.getClassName();
         if (StringUtil.isEmpty(className)) {
-            validator.addResult(ClazzError.CANNOT_HAVE_EMPTY_CLASS_NAME);
+            builder.addResult(ClazzError.CANNOT_HAVE_EMPTY_CLASS_NAME);
         }
         if (!className.equals(JavaKeywords.replaceJavaKeywordSafe(className))) {
-            validator.addResult(ClazzError.INVALID_CLASS_NAME);
+            builder.addResult(ClazzError.INVALID_CLASS_NAME);
         }
         if (Clazz.ClassType.INTERFACE.equals(classType)) {
             buildInterface(builder, clazz.getVisibility(), className);
         } else if (Clazz.ClassType.CLASS.equals(classType)) {
             buildClass(builder, className, clazz);
         } else {
-            validator.addResult(ClazzError.MUST_BE_CLASS_OR_INTERFACE);
+            builder.addResult(ClazzError.MUST_BE_CLASS_OR_INTERFACE);
         }
     }
 
-    private void buildClass(StringBuilder builder, String className, ClazzReadable clazz) {
+    private void buildClass(ClassBuilder builder, String className, ClazzReadable clazz) {
         boolean isFinal = clazz.isFinal();
         boolean isAbstract = clazz.isAbstract();
         if (isFinal && isAbstract) {
-            validator.addResult(ClazzError.CANNOT_BE_ABSTRACT_AND_FINAL);
+            builder.addResult(ClazzError.CANNOT_BE_ABSTRACT_AND_FINAL);
             return;
         }
         Clazz.Visibility visibility = clazz.getVisibility();
@@ -65,23 +62,23 @@ class ClassStarter {
 
         builder.append(visibility.toString()).append(' ');
         builder.append(isFinal ? "final " : isAbstract ? "abstract " : "");
-        builder.append("class ").append(className).append(TYPE_PLACEHOLDER);
+        builder.append("class ").append(className).markType();
         if (extension != null) {
             builder.append(" extends ");
             builder.append(procUtil.getClassSimpleName(extension.toString()));
         }
     }
 
-    private void buildInterface(StringBuilder builder, Clazz.Visibility visibility, String className) {
+    private void buildInterface(ClassBuilder builder, Clazz.Visibility visibility, String className) {
         if (Clazz.Visibility.PUBLIC.equals(visibility)) {
             builder.append(visibility.toString()).append(' ');
         } else if (Clazz.Visibility.PRIVATE.equals(visibility)) {
-            validator.addResult(ClazzError.CANNOT_HAVE_PRIVATE_INTERFACE);
+            builder.addResult(ClazzError.CANNOT_HAVE_PRIVATE_INTERFACE);
         }
-        builder.append("interface ").append(className).append(TYPE_PLACEHOLDER);
+        builder.append("interface ").append(className).markType();
     }
 
-    Set<JMethod> buildImplementations(StringBuilder builder, Clazz.ClassType classType, Set<Class> implementations) {
+    Set<JMethod> buildImplementations(ClassBuilder builder, Clazz.ClassType classType, Set<Class> implementations) {
         Set<JMethod> methods = new HashSet<>();
         String parametrization = "";
         if (!implementations.isEmpty()) {
@@ -96,43 +93,29 @@ class ClassStarter {
                     methods.add(new JMethod(method));
                 }
             }
-            trimComma(builder);
+            builder.trimComma();
         }
         createParametrization(builder, parametrization);
         return methods;
     }
 
-    private void trimComma(StringBuilder builder) {
-        int length = builder.lastIndexOf(", ");
-        if (length != -1) {
-            builder.replace(length, length + 1, "");
-        }
+    void createParametrization(ClassBuilder builder, String parametrization) {
+        builder.insertType(parametrization);
     }
 
-    void createParametrization(StringBuilder builder, String parametrization) {
-        int startIndex = builder.indexOf(TYPE_PLACEHOLDER);
-        if (startIndex > 0) {
-            builder.replace(startIndex, startIndex + TYPE_PLACEHOLDER.length(), parametrization);
-        }
-    }
-
-    void buildHeader(String packagePath, StringBuilder builder) {
+    void buildHeader(String packagePath, ClassBuilder builder) {
         if (!StringUtil.isEmpty(packagePath)) {
-            builder.append("package ").append(packagePath).append(';').append(procUtil.ONE_LINE).append(procUtil.ONE_LINE);
+            builder.append("package ").append(packagePath).append(';').appendln().appendln();
         }
-        builder.append(procUtil.IMPORT_PLACEHOLDER).append(procUtil.ONE_LINE);
+        builder.markImport().appendln();
     }
 
-    void buildImports(Set<Class> imports, StringBuilder builder) {
-        StringBuilder importBuilder = new StringBuilder();
+    void buildImports(Set<Class> imports, ClassBuilder builder) {
         for (Class aClass : imports) {
             String importName = aClass.getCanonicalName();
             if (!importName.startsWith("java.lang") && importName.equals(JavaKeywords.replaceJavaKeyword(importName))) {
-                importBuilder.append("import ").append(procUtil.dollarToDot(importName)).append(';').append(procUtil.ONE_LINE);
+                builder.insertImport(procUtil.dollarToDot(importName));
             }
         }
-        int start = builder.indexOf(procUtil.IMPORT_PLACEHOLDER);
-        int end = start + procUtil.IMPORT_PLACEHOLDER.length();
-        builder.replace(start, end, importBuilder.toString());
     }
 }

@@ -109,7 +109,7 @@ public class JavaCompiler implements Compiler {
             }
             logger.logPlain("[info]" + (proc.waitFor() == 0 ? "javac success" : "javac failure"));
         }
-        return errorBuilder.getCompileErrors();
+        return errorBuilder.flushAndGetCompileErrors();
     }
 
     private String getValidCmdArg(String arg, String classPath) {

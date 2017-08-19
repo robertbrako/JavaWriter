@@ -34,7 +34,7 @@ class ProcUtil {
     }
 
     private void buildPrimitiveMap() {
-        primitives = new HashMap<>(8);
+        primitives = new HashMap<>(10);
         primitives.put("Void", "void");
         primitives.put("Integer", "int");
         primitives.put("Character", "char");
@@ -43,6 +43,7 @@ class ProcUtil {
         primitives.put("Short", "short");
         primitives.put("Float", "float");
         primitives.put("Double", "double");
+        primitives.put("Byte", "byte");
     }
 
     String getVarName(String param) {
@@ -74,15 +75,23 @@ class ProcUtil {
     ReturnParams getReturnAndParams(JMethod method) {
         String[] contents = method.toGenericString().split(" ");
         int indexOfReturnType = getIndexOfReturnType(contents);
+
+        String returnType = dollarToDot(toPrimitive(getClassSimpleName(contents[indexOfReturnType])));
+        if (returnType.startsWith("<")) {
+            returnType += " " + returnType.replaceAll("[<>]", "") + "[]";
+        }
+        JParam returnInfo = new JParam(returnType.replaceAll("\\w+\\.(\\w+)", "$1"));
+        Arrays.stream(contents[indexOfReturnType].replaceAll(".*<(.*)>.*", "$1").split(","))
+                .filter(type -> !primitives.values().contains(type) && type.length() > 1) //don't import E from Set<E>
+                .forEach(returnInfo::add);
         ReturnParams result = new ReturnParams();
-        result.setReturnType(toPrimitive(getClassSimpleName(contents[indexOfReturnType])));
+        result.setReturnType(returnInfo);
         result.setParams(getParameters(method.toGenericString()));
         return result;
     }
 
     String getClassSimpleName(String object) {
-        int begin = object.lastIndexOf('.') + 1;
-        return object.substring(begin).replaceAll(";", "");
+        return object.replaceAll("(\\w+\\.)+(\\w+)", "$2");
     }
 
     String dollarToDot(String param) {
@@ -132,19 +141,11 @@ class ProcUtil {
         return newParam;
     }
 
-    String getReturnType(ReturnParams returnParams) {
-        String returnType = dollarToDot(returnParams.getReturnType());
-        if (returnType.startsWith("<")) {
-            returnType += " " + returnType.replaceAll("[<>]", "") + "[]";
-        }
-        return returnType;
-    }
-
     class ReturnParams {
-        String returnType = "";
+        JParam returnType;
         List<JParam> params = new ArrayList<>();
 
-        void setReturnType(String returnType) {
+        void setReturnType(JParam returnType) {
             this.returnType = returnType;
         }
 
@@ -152,7 +153,7 @@ class ProcUtil {
             this.params = params;
         }
 
-        String getReturnType() {
+        JParam getReturnType() {
             return returnType;
         }
 

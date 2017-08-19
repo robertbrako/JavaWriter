@@ -19,6 +19,7 @@ import com.rmbcorp.javawriter.clazz.*;
 import com.rmbcorp.util.StringUtil;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -65,9 +66,9 @@ class ClassStarter {
         builder.append(visibility.toString()).append(' ');
         builder.append(isFinal ? "final " : isAbstract ? "abstract " : "");
         builder.append("class ").append(className).markType();
-        if (extension != null) {
+        if (extension != null && (extension.getModifiers() & Modifier.FINAL) == 0) {
             builder.append(" extends ");
-            builder.append(procUtil.getClassSimpleName(extension.toString()));
+            builder.append(procUtil.getClassSimpleName(extension.getName()));
         }
     }
 
@@ -89,7 +90,7 @@ class ClassStarter {
                 Matcher matcher = typedClass.matcher(object.toGenericString());
                 parametrization = matcher.find() ? matcher.group(1) : "";
 
-                builder.append(procUtil.dollarToDot(procUtil.getClassSimpleName(object.toString())));
+                builder.append(procUtil.dollarToDot(procUtil.getClassSimpleName(object.getName())));
                 builder.append(parametrization).append(", ");
                 for (Method method : object.getDeclaredMethods()) {
                     methods.add(new JMethod(method));

@@ -37,7 +37,10 @@ class CompileErrorBuilder {
         return line.replaceAll("\\\\", "/");
     }
 
-    List<CompileError> getCompileErrors() {
+    List<CompileError> flushAndGetCompileErrors() {
+        if (!errorCache.isEmpty()) {
+            compileErrors.add(new CompileError(errorCache));
+        }
         return compileErrors;
     }
 }

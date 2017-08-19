@@ -20,6 +20,7 @@ final class EnumProcessor implements ClazzProcessor<EnumReadable> {
 
     @Override
     public ProcessResult writeOut(EnumReadable clazz) {
+        builder.reset();
         classStarter.buildHeader(clazz.getPackagePath(), builder);
         buildEnumHeader(clazz);
         buildEnumConstants(clazz);

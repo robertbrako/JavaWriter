@@ -5,6 +5,7 @@ import com.rmbcorp.javawriter.clazz.ClazzError;
 import com.rmbcorp.util.StringUtil;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,6 +30,7 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
 
     @Override
     public ProcessResult writeOut(ClazzReadable clazz) {
+        builder.reset();
         classStarter.buildHeader(clazz.getPackagePath(), builder);
         Set<Class> allImports = clazz.getImports();
         setupImports(allImports, clazz.getExtension(), clazz.getImplementations());
@@ -55,15 +57,16 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
 
     private void buildBody(Class extension, Set<Class> implementations, Set<Class> imports, Set<JMethod> jMethods) {
         int lev = 1;
-        builder.markVariables().appendln();
-        if (extension != null) {
+        builder.appendln().markVariables().appendln();
+        if (extension != null && (extension.getModifiers() & Modifier.FINAL) == 0) {//should move this validation upstream
             implementations.add(extension);
         }
         Set<JVariable> allVariables = new HashSet<>();
         for (Class clazz : implementations) {
-            for (Method method : clazz.getDeclaredMethods()) {
-                processMethods(imports, lev, allVariables, new JMethod(method));
-            }
+            Arrays.stream(clazz.getDeclaredMethods())
+                    .filter(method -> method.getModifiers() != 2)// 2 = private
+                    .filter(method -> (method.getModifiers() & Modifier.STATIC) == 0)
+                    .forEach(method -> processMethods(imports, lev, allVariables, new JMethod(method)));
         }
         for (JMethod jMethod : jMethods) {
             processMethods(imports, lev, allVariables, jMethod);
@@ -74,7 +77,7 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
 
     private void processMethods(Set<Class> imports, int lev, Set<JVariable> allVariables, JMethod jMethod) {
         Class<?> returnClass = jMethod.getReturnType();
-        List<ProcUtil.JParam> returnTypeAndParams;
+        List<ProcUtil.JParam> params;
         String returnType, varName, methodName, methodParamType;
         Map<JVariable, Boolean> variables;
         methodName = jMethod.getName();
@@ -85,14 +88,16 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
         builder.processComments(jMethod.getComment());
 
         ProcUtil.ReturnParams returnAndParams = procUtil.getReturnAndParams(jMethod);
-        returnType = procUtil.getReturnType(returnAndParams);
-        returnTypeAndParams = returnAndParams.getParams();
+        ProcUtil.JParam returnTypeInfo = returnAndParams.getReturnType();
+        returnType = returnTypeInfo.getParamType();
+        returnTypeInfo.types().forEach(type -> insertImport(imports, type));
+        params = returnAndParams.getParams();
         builder.append(procUtil.tab(lev)).append(procUtil.getScope(jMethod.getModifier()))
                 .append(returnType).append(' ')
                 .append(methodName).append('(');
         
-        methodParamType = returnTypeAndParams.isEmpty() ? "" : getFirstTypeOnly(returnTypeAndParams);
-        variables = getParams(returnTypeAndParams, methodName.startsWith("set"), imports);
+        methodParamType = params.isEmpty() ? "" : getFirstTypeOnly(params);
+        variables = getParams(params, methodName.startsWith("set"), imports);
         builder.append(")");
         allVariables.addAll(variables.entrySet().stream()
                 .filter(Map.Entry::getValue)
@@ -143,11 +148,14 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
     private String returnObject(Class<?> returnClass, String returnType, String simpleName) {
         String returnText = "null;";
         if (!(returnClass.isInterface() || returnClass.getCanonicalName().contains("abstract")
-                || returnType.startsWith("<") || returnType.length() < 2)) {
+                || returnType.startsWith("<") || returnType.length() < 2
+                || returnClass.isEnum()|| "Class".equals(returnType))) {
             if (simpleName.contains("[]")) {
                 returnText = "new " + simpleName + "{};";
             } else {
-                returnText = "new " + simpleName + "();";
+                if (Arrays.stream(returnClass.getConstructors()).filter(con -> con.getParameterCount() == 0).count() > 0) {
+                    returnText = "new " + simpleName + "();";
+                }
             }
         }
         return returnText;

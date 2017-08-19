@@ -51,6 +51,7 @@ class ClassBuilder {
 
     void reset() {
         builder = new StringBuilder("");
+        errorCache.clear();
     }
 
     @Override
@@ -85,13 +86,14 @@ class ClassBuilder {
     }
 
     void insertVariable(String visibility, String type, String name, int tabLevel) {
-        builder.insert(variablesMark, ";\n") //line of text is constructed from right to left
+        builder.insert(variablesMark, ";") //line of text is constructed from right to left
                 .insert(variablesMark, name)
                 .insert(variablesMark, ' ')
                 .insert(variablesMark, type)
                 .insert(variablesMark, ' ')
                 .insert(variablesMark, visibility)
-                .insert(variablesMark, procUtil.tab(tabLevel));
+                .insert(variablesMark, procUtil.tab(tabLevel))
+                .insert(variablesMark, "\n");
         lineNo++;
     }
 

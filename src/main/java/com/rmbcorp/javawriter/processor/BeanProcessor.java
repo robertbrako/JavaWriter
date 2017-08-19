@@ -90,7 +90,8 @@ final class BeanProcessor implements ClazzProcessor<ClazzReadable> {
         for (JMethod method : methods) {
             varCache.clear();
             ProcUtil.ReturnParams returnParams = procUtil.getReturnAndParams(method);
-            String returnType = procUtil.getReturnType(returnParams);
+            ProcUtil.JParam returnTypeInfo = returnParams.getReturnType();
+            String returnType = returnTypeInfo.getParamType(); //also need to import type params if any
 
             builder.processComments(method.getComment());
             builder.append(procUtil.tab(lev))

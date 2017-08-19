@@ -1,14 +1,10 @@
 package com.rmbcorp.javawriter.processor;
 
 import com.rmbcorp.javawriter.clazz.*;
-import com.rmbcorp.javawriter.clazz.ClazzError;
 import com.rmbcorp.util.StringUtil;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**ClazzImplProcessor
@@ -57,15 +53,16 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
 
     private void buildBody(Class extension, Set<Class> implementations, Set<Class> imports, Set<JMethod> jMethods) {
         int lev = 1;
-        builder.appendln().markVariables().appendln();
-        if (extension != null && (extension.getModifiers() & Modifier.FINAL) == 0) {//should move this validation upstream
+        builder.appendln().markVariables().appendln().appendln();
+        if (extension != null && (extension.getModifiers() & Modifier.FINAL) == 0) {
             implementations.add(extension);
         }
         Set<JVariable> allVariables = new HashSet<>();
         for (Class clazz : implementations) {
             Arrays.stream(clazz.getDeclaredMethods())
-                    .filter(method -> method.getModifiers() != 2)// 2 = private
+                    .filter(method -> (method.getModifiers() & Modifier.PRIVATE) == 0)
                     .filter(method -> (method.getModifiers() & Modifier.STATIC) == 0)
+                    .filter(method -> (method.getModifiers() & Modifier.FINAL) == 0)
                     .forEach(method -> processMethods(imports, lev, allVariables, new JMethod(method)));
         }
         for (JMethod jMethod : jMethods) {
@@ -90,8 +87,10 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
         ProcUtil.ReturnParams returnAndParams = procUtil.getReturnAndParams(jMethod);
         ProcUtil.JParam returnTypeInfo = returnAndParams.getReturnType();
         returnType = returnTypeInfo.getParamType();
-        returnTypeInfo.types().forEach(type -> insertImport(imports, type));
         params = returnAndParams.getParams();
+
+        procUtil.insertImports(builder, imports, returnTypeInfo);
+
         builder.append(procUtil.tab(lev)).append(procUtil.getScope(jMethod.getModifier()))
                 .append(returnType).append(' ')
                 .append(methodName).append('(');
@@ -113,7 +112,7 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
         }
         generateForLoopAndIfStatements(variables, methodParamType, lev);
         generateReturnStatement(lev, returnClass, returnType);
-        imports.add(returnClass);
+        procUtil.insertImport(builder, imports, returnClass.getCanonicalName());
         lev--;
         builder.append(procUtil.tab(lev)).append("}").appendln().appendln();
     }
@@ -163,18 +162,19 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
 
     private Map<JVariable, Boolean> getParams(List<ProcUtil.JParam> parameterTypes, boolean makeSetter, Set<Class> imports) {
         Map<JVariable, Boolean> variables = new HashMap<>();
-        ProcUtil.JParam param;//param as String was like "java.lang.String" - get this from Class object instead.
+        ProcUtil.JParam param;
         String simpleName;
         Map<Integer, Integer> paramCounts = new HashMap<>();
         int typeCount;
         for (int i = 0, parameterTypesLength = parameterTypes.size(); i < parameterTypesLength; i++) {
             param = parameterTypes.get(i);
-            simpleName = procUtil.getClassSimpleName(procUtil.dollarToDot(param.getParamType()));
-            builder.append(simpleName);
+            String printedName = procUtil.dollarToDot(param.getParamType());
+            builder.append(printedName);
             classStarter.addParametrization(builder, param);
             builder.append(" ");
+            simpleName = printedName.replace("...", "[]");
 
-            String trimmedParam = cleanParamString(simpleName);
+            String trimmedParam = procUtil.getClassSimpleName(cleanParamString(simpleName));
             String varName = procUtil.getVarName(trimmedParam);
             if (paramCounts.get(param.hashCode()) == null) {
                 paramCounts.put(param.hashCode(), 0);
@@ -188,25 +188,9 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
                 builder.append(", ");
             }
             variables.put(new JVariable(varName, simpleName), makeSetter);
-            resolveParamImports(imports, param.getParamType(), simpleName, trimmedParam);
+            procUtil.insertImports(builder, imports, param);
         }
         return variables;
-    }
-
-    private void resolveParamImports(Set<Class> imports, String param, String simpleName, String trimmedParam) {
-        if (!param.equals(simpleName) &&
-                imports.stream().noneMatch(clazz -> clazz.getSimpleName().contains(trimmedParam))) {
-            insertImport(imports, param);
-        }
-    }
-
-    private void insertImport(Set<Class> imports, String param) {
-        try {
-            imports.add(Class.forName(cleanParamString(param)));
-        } catch (ClassNotFoundException ignored) {
-            Logger.getGlobal().log(Level.INFO, ignored.getLocalizedMessage(), ignored);
-            builder.addResult(ClazzError.INVALID_CLASS_NAME);
-        }
     }
 
     private String cleanParamString(String string) {

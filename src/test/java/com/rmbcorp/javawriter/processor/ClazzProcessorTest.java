@@ -15,14 +15,14 @@
 */
 package com.rmbcorp.javawriter.processor;
 
+import com.rmbcorp.javawriter.BuildJob;
 import com.rmbcorp.javawriter.SampleInterface;
+import com.rmbcorp.javawriter.autojavac.Compiler;
 import com.rmbcorp.javawriter.clazz.*;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,11 +36,13 @@ public class ClazzProcessorTest {
     private static final String CLASS_NAME = "ClazzImpl2";
 
     private ClazzProcessor<ClazzReadable> clazzProcessor;
+    private ClazzProcessor<ClazzReadable> beanProcessor;
     private ClazzImpl clazz;
 
     @Before
     public void setUp() throws Exception {
-        clazzProcessor = ProcessorProvider.getBeanProcessor();
+        clazzProcessor = ProcessorProvider.getClazzProcessor();
+        beanProcessor = ProcessorProvider.getBeanProcessor();
         clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER, CLASS_NAME);
     }
 
@@ -64,7 +66,7 @@ public class ClazzProcessorTest {
     @Test
     public void makeBeanFromVariables() {
         clazz.addBeanVariable(new JVariable("username", String.class));
-        String output = clazzProcessor.writeOut(clazz).getContents();
+        String output = beanProcessor.writeOut(clazz).getContents();
 
         assertTrue(output.contains("public void setUsername(String username)"));
         assertTrue(output.contains("this.username = username"));
@@ -76,7 +78,7 @@ public class ClazzProcessorTest {
     public void makeBeanFromMethods() {
         clazz.addMethod(new JMethod("setUserId", Void.class, Clazz.Visibility.PUBLIC, COM_RMBCORP_JAVAWRITER, Integer.class));
         clazz.addMethod(new JMethod("getUserId", Integer.class, Clazz.Visibility.PUBLIC, COM_RMBCORP_JAVAWRITER));
-        String output = clazzProcessor.writeOut(clazz).getContents();
+        String output = beanProcessor.writeOut(clazz).getContents();
 
         assertTrue(output.contains("public void setUserId(int userId)"));
         assertTrue(output.contains("this.userId = userId"));
@@ -86,7 +88,7 @@ public class ClazzProcessorTest {
 
     @Test
     public void beanIsNotPublicByDefault() {
-        String output = clazzProcessor.writeOut(clazz).getContents();
+        String output = beanProcessor.writeOut(clazz).getContents();
         Pattern pattern = Pattern.compile("public.*class");
         Matcher matcher = pattern.matcher(output);
         assertFalse(matcher.find());
@@ -95,17 +97,16 @@ public class ClazzProcessorTest {
     @Test
     public void beanProcessorDoesNotCurrentlyStubImplementations() {
         clazz.addImplementations(Collections.singletonList(ClazzReadable.class));
-        String output = clazzProcessor.writeOut(clazz).getContents();
+        String output = beanProcessor.writeOut(clazz).getContents();
         assertFalse(output.contains("getPackagePath"));
     }
 
     @Test
     public void paramTest() {
-        ClazzProcessor<ClazzReadable> clazzProcessor = ProcessorProvider.getClazzProcessor();
         clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER + ".processor", CLASS_NAME);
         clazz.addImplementations(Collections.singletonList(SampleInterface.class));
         String out = clazzProcessor.writeOut(clazz).getContents();
-        assertTrue(out.contains("typedParam(List<String> "));
+        assertTrue(out.contains("typedParam(List<Set> "));
     }
 
     @Test
@@ -122,7 +123,6 @@ public class ClazzProcessorTest {
 
     @Test
     public void commentTest() {
-        ClazzProcessor<ClazzReadable> clazzProcessor = ProcessorProvider.getClazzProcessor();
         clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER + ".processor", CLASS_NAME);
         JMethod jMethod = new JMethod("method", Void.class, Clazz.Visibility.PACKAGE, COM_RMBCORP_JAVAWRITER);
         String line1 = "This is a multiline comment";
@@ -136,5 +136,72 @@ public class ClazzProcessorTest {
         assertTrue(out.indexOf(line1) < out.indexOf(line2));
         assertTrue(out.indexOf(line2) < out.indexOf("**/"));
         assertTrue(out.contains("void method()"));
+    }
+
+    @Test
+    public void wontExtendFinalClasses() {
+        ClazzImpl clazz = new ClazzImpl("", CLASS_NAME);
+        clazz.addExtension(ProcessorProvider.getBeanProcessor().getClass());
+        String result = clazzProcessor.writeOut(clazz).getContents();
+        assertFalse(result.contains("extends "));
+    }
+
+    @Test
+    public void wontStubStaticInterfaceMethods() {
+        ClazzImpl clazz = new ClazzImpl("", CLASS_NAME);
+        clazz.addImplementations(Collections.singletonList(BuildJob.class));
+        String contents = clazzProcessor.writeOut(clazz).getContents();
+        assertFalse(contents.contains("BuildJob get"));
+    }
+
+    @Test
+    public void returnNullInsteadOfNewClassDueToLackOfConstructor() {
+        ClazzImpl clazz = new ClazzImpl("", CLASS_NAME);
+        clazz.addImplementations(Collections.singletonList(ClazzReadable.class));
+        String contents = clazzProcessor.writeOut(clazz).getContents();
+
+        String returnLine = "";
+        String[] split = contents.split("\n");
+        for (int i = 0; i < split.length; i++) {
+            if (split[i].endsWith("Class getExtension() {")) {
+                returnLine = split[i+2];
+            }
+        }
+        assertTrue(returnLine.matches("\\s*return null;"));
+    }
+
+    @Test
+    public void importTypeParamAsWell() {
+        ClazzImpl clazz = new ClazzImpl("", CLASS_NAME);
+        clazz.addImplementations(Collections.singletonList(SampleInterface.class));
+        String contents = clazzProcessor.writeOut(clazz).getContents();
+
+        assertTrue(contents.contains("import java.util.List"));
+        assertTrue(contents.contains("import java.util.Set"));
+    }
+
+    @Test
+    public void finallySupportMultiTypedParams() {
+        clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER + ".processor", CLASS_NAME);
+        clazz.addImplementations(Collections.singletonList(SampleInterface.class));
+        String out = clazzProcessor.writeOut(clazz).getContents();
+        assertTrue(out.contains("multiTypedParam(Map<Integer, String>"));
+    }
+
+    @Test
+    public void varArgsSupport() {
+        ClazzImpl clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER, CLASS_NAME);
+        clazz.addImplementations(Collections.singletonList(Compiler.class));
+        String result = clazzProcessor.writeOut(clazz).getContents();
+        assertTrue(result.contains("private JavacParams[] javacParams;"));
+        assertTrue(result.contains("setParams(JavacParams... javacParams"));
+    }
+
+    @Test
+    public void importSubclassesProperly() {
+        ClazzImpl clazz = new ClazzImpl(COM_RMBCORP_JAVAWRITER, CLASS_NAME);
+        clazz.addImplementations(Collections.singletonList(Clazz.class));
+        String result = clazzProcessor.writeOut(clazz).getContents();
+        assertTrue(result.contains("private Clazz.Visibility visibility;"));
     }
 }

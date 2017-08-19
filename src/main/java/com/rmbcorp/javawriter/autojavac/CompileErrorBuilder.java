@@ -30,7 +30,9 @@ class CompileErrorBuilder {
             compileErrors.add(new CompileError(errorCache));
             errorCache.clear();
         }
-        errorCache.add(line);
+        if (!line.startsWith("Note")) {
+            errorCache.add(line);
+        }
     }
 
     private String normalize(String line) {

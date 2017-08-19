@@ -15,17 +15,19 @@
 */
 package com.rmbcorp.javawriter.processor;
 
+import com.rmbcorp.javawriter.clazz.ClazzError;
 import com.rmbcorp.javawriter.clazz.JMethod;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 class ProcUtil {
 
-    private final Pattern paramFinder = Pattern.compile("\\((.+)\\)");
-    private final Pattern paramTypeFinder = Pattern.compile("(.*)<(.*)>");
+    private final Pattern subclassFinder = Pattern.compile("(.*[A-Z]\\w*)\\.([A-Z]\\w*)");
 
     private Map<String, String> primitives;
 
@@ -80,13 +82,13 @@ class ProcUtil {
         if (returnType.startsWith("<")) {
             returnType += " " + returnType.replaceAll("[<>]", "") + "[]";
         }
-        JParam returnInfo = new JParam(returnType.replaceAll("\\w+\\.(\\w+)", "$1"));
+        JParam returnInfo = new JParam(contents[indexOfReturnType], returnType);
         Arrays.stream(contents[indexOfReturnType].replaceAll(".*<(.*)>.*", "$1").split(","))
                 .filter(type -> !primitives.values().contains(type) && type.length() > 1) //don't import E from Set<E>
                 .forEach(returnInfo::add);
         ReturnParams result = new ReturnParams();
         result.setReturnType(returnInfo);
-        result.setParams(getParameters(method.toGenericString()));
+        result.setParams(getParameters(method.toGenericString().replaceFirst("\\sthrows.*", "")));
         return result;
     }
 
@@ -104,41 +106,66 @@ class ProcUtil {
 
     private int getIndexOfReturnType(String[] contents) {
         int startIndex = 1;
-        for (String modifier : Arrays.asList("abstract", "final", "native", "static", "default")) {
+        for (String modifier : Arrays.asList("abstract", "final", "native", "static", "default", "synchronized")) {
             for (String item : contents) {
                 if (modifier.equalsIgnoreCase(item)) {
                     startIndex++;
                 }
             }
         }
-        return startIndex;
+        return contents.length > 2 ? startIndex : 0;
     }
 
     private List<JParam> getParameters(String fullString) {
-        List<JParam> jParams = new ArrayList<>(4);
-        Matcher matcher = paramFinder.matcher(fullString);
-        if(matcher.find()) {
-            String[] paramStrings = matcher.group(1).split(",");
-            for (String param : paramStrings) {
-                jParams.add(getNewParam(param));
+        String[] pieces = fullString.split("[(),]");
+        if (pieces.length < 2) {
+            return new ArrayList<>();
+        }
+        List<JParam> result = new ArrayList<>();
+        boolean needNew = true;
+        JParam current = null;
+        for (int i = 1; i < pieces.length; i++) {
+            if (needNew) {
+                String[] paramType = pieces[i].split("<");
+                current = new JParam(paramType[0].trim(), getClassSimpleName(paramType[0]));
+                result.add(current);
+                if (paramType.length > 1) {
+                    current.add(paramType[1].replace(">", "").trim());
+                }
+                needNew = paramType.length == 1 || pieces[i].contains(">");
+            } else {
+                String trimmed = pieces[i].replaceAll("[> ]", "");
+                current.add(trimmed);
+                needNew = !trimmed.equals(pieces[i]);
             }
         }
-        return jParams;
+        return result;
     }
 
-    private JParam getNewParam(String param) {
-        JParam newParam;
-        Matcher typeMatcher = paramTypeFinder.matcher(param);
-        if (typeMatcher.find()) {
-            newParam = new JParam(typeMatcher.group(1));
-            String[] paramTypes = typeMatcher.group(2).split(",");
-            for (String item : paramTypes) {
-                newParam.add(getClassSimpleName(item));
-            }
-        } else {
-            newParam = new JParam(param.replace("...", "[]"));
+    void insertImports(ClassBuilder builder, Set<Class> imports, JParam returnTypeInfo) {
+        returnTypeInfo.fullTypes().forEach(type -> insertImport(builder, imports, type));
+        insertImport(builder, imports, returnTypeInfo.getFullParamType());
+    }
+
+    void insertImport(ClassBuilder builder, Set<Class> imports, String param) {
+        String cleanParam = dollarToDot(cleanParamString(param));
+        if (!JavaKeywords.replaceJavaKeywordSafe(cleanParam).equals(cleanParam) || cleanParam.length() < 2
+                || cleanParam.startsWith("?") || imports.stream().map(Class::getCanonicalName).anyMatch(param::equals))
+            return;
+        Matcher matcher = subclassFinder.matcher(cleanParam);
+        if (matcher.find()) {
+            cleanParam = matcher.group(1);
         }
-        return newParam;
+        try {
+            imports.add(Class.forName(cleanParam));
+        } catch (ClassNotFoundException ignored) {
+            Logger.getGlobal().log(Level.INFO, ignored.getLocalizedMessage(), ignored);
+            builder.addResult(ClazzError.INVALID_CLASS_NAME);
+        }
+    }
+
+    private String cleanParamString(String string) {
+        return string.replaceAll("\\[]", "").replaceAll("<.*>", "");
     }
 
     class ReturnParams {
@@ -164,11 +191,18 @@ class ProcUtil {
 
     class JParam {
 
-        private String paramType;
+        private final String paramType;
+        private final String fullyQualifiedParamType;
         private List<String> types = new ArrayList<>(2);
+        private List<String> fullTypes = new ArrayList<>(2);
 
-        JParam(String paramType) {
+        JParam(String fullQualifiedParamType, String paramType) {
+            this.fullyQualifiedParamType = fullQualifiedParamType.replace("...", "[]");
             this.paramType = paramType;
+        }
+
+        String getFullParamType() {
+            return fullyQualifiedParamType;
         }
 
         String getParamType() {
@@ -179,8 +213,12 @@ class ProcUtil {
             return types;
         }
 
+        List<String> fullTypes() {
+            return fullTypes;
+        }
+
         boolean add(String parametrizedType) {
-            return types.add(parametrizedType);
+            return fullTypes.add(parametrizedType) && types.add(getClassSimpleName(parametrizedType));
         }
 
         @Override

@@ -49,7 +49,7 @@ final class BeanProcessor implements ClazzProcessor<ClazzReadable> {
         beanMethods.forEach(jMethod -> imports.add(jMethod.getReturnType()));
 
         openBody();
-        buildBody(beanMethods, tabLevel + 1);
+        buildBody(beanMethods, imports, tabLevel + 1);
         buildVariables(tabLevel + 1);
         classStarter.buildImports(imports, builder);
         closeBody();
@@ -85,13 +85,15 @@ final class BeanProcessor implements ClazzProcessor<ClazzReadable> {
         return new String(paramCopy);
     }
 
-    private void buildBody(Set<JMethod> methods, int lev) {
+    private void buildBody(Set<JMethod> methods, Set<Class> imports, int lev) {
         List<String> varCache = new ArrayList<>(2);
         for (JMethod method : methods) {
             varCache.clear();
             ProcUtil.ReturnParams returnParams = procUtil.getReturnAndParams(method);
             ProcUtil.JParam returnTypeInfo = returnParams.getReturnType();
-            String returnType = returnTypeInfo.getParamType(); //also need to import type params if any
+            String returnType = returnTypeInfo.getParamType();
+
+            procUtil.insertImports(builder, imports, returnTypeInfo);
 
             builder.processComments(method.getComment());
             builder.append(procUtil.tab(lev))

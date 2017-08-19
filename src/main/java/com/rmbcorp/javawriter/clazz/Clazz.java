@@ -7,7 +7,7 @@ import java.util.List;
  */
 public interface Clazz {
     enum Visibility {
-        PUBLIC(1), PRIVATE(2), PACKAGE(0);
+        PACKAGE(0), PUBLIC(1), PRIVATE(2);
 
         private final int modifier;
 
@@ -22,6 +22,10 @@ public interface Clazz {
 
         public int getModifier() {
             return modifier;
+        }
+
+        public static String from(int modifier) {
+            return modifier < 3 ? values()[modifier].toString() : "protected";
         }
     }
     enum ClassType { CLASS, INTERFACE }

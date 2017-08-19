@@ -20,8 +20,7 @@ import com.rmbcorp.util.StringUtil;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -69,6 +68,10 @@ class ClassStarter {
         if (extension != null && (extension.getModifiers() & Modifier.FINAL) == 0) {
             builder.append(" extends ");
             builder.append(procUtil.getClassSimpleName(extension.getName()));
+            Matcher matcher = typedClass.matcher(extension.toGenericString());
+            String parametrization = matcher.find() ? matcher.group(1) : "";
+            builder.append(parametrization);
+            createParametrization(builder, parametrization);
         }
     }
 
@@ -116,7 +119,7 @@ class ClassStarter {
     void buildImports(Set<Class> imports, ClassBuilder builder) {
         for (Class aClass : imports) {
             String importName = aClass.getCanonicalName();
-            if (!importName.startsWith("java.lang") && importName.equals(JavaKeywords.replaceJavaKeyword(importName))) {
+            if (!importName.matches("java.lang.[A-Z].*")) {
                 builder.insertImport(procUtil.dollarToDot(importName));
             }
         }
@@ -125,7 +128,7 @@ class ClassStarter {
     void addParametrization(ClassBuilder builder, ProcUtil.JParam param) {
         if (!param.types().isEmpty()) {
             builder.append("<");
-            String parametrizedTypes = param.types().stream().collect(Collectors.joining(","));
+            String parametrizedTypes = param.types().stream().collect(Collectors.joining(", "));
             builder.append(parametrizedTypes);
             builder.append(">");
         }

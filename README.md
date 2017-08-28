@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/robertbrako/JavaWriter.svg?branch=master)](https://travis-ci.org/robertbrako/JavaWriter)
 <br>
 Utility to dynamically write and compile java code.
-
+![Sample Server](./sampleServer.png)
 Goals for 0.2-SNAPSHOT:
   1. Validation backed by Unit Tests
   2. Auto-creation of fields

@@ -200,12 +200,15 @@ final class ClazzImplProcessor implements ClazzProcessor<ClazzReadable> {
     private void generateForLoopAndIfStatements(Map<JVariable, Boolean> variables, String methodParamType, int tabLev) {
         boolean useEmptyBody = true;
         String iterable;
+        String currentParamType = methodParamType;
         for (JVariable jVariable : variables.keySet()) {
             iterable = cleanParamString(jVariable.getType());
-            if (!"".equals(methodParamType) && Iterables.contains(iterable) && !methodParamType.startsWith("?")) {//todo deal with ?
+            if (!"".equals(methodParamType) && Iterables.contains(iterable)) {
                 useEmptyBody = false;
+                if ("?".equals(methodParamType)) currentParamType = "Object";
+                else if (methodParamType.startsWith("? extends")) currentParamType = methodParamType.replace("? extends ", "");
                 builder.append(procUtil.tab(tabLev)).append("for (")
-                        .append(methodParamType).append(" ").append(procUtil.getVarName(methodParamType))
+                        .append(currentParamType).append(" ").append(procUtil.getVarName(currentParamType))
                         .append(" : ")
                         .append(iterable.toLowerCase())
                         .append(") {").appendln();

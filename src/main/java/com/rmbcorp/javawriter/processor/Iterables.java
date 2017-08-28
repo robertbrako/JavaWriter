@@ -27,7 +27,7 @@ enum Iterables {
 
     public static boolean contains(String className) {
         for (Iterables it : values()) {
-            if (it.refName.equals(className)) {
+            if (className.startsWith(it.refName)) {
                 return true;
             }
         }

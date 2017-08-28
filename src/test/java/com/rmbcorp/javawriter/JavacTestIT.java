@@ -109,6 +109,7 @@ public class JavacTestIT {
         clazz.addMethod(commentedMethod);
 
         BuildJob buildJob = getBuildJob(clazzProcessor, clazz);
+        assertTrue(buildJob.getFileContents().contains("for (E e : collection)"));
         compile(buildJob);
         verifySuccess(buildJob);
     }
